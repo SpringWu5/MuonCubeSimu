@@ -1,0 +1,46 @@
+Run:
+  # number of events to simulate. -1 means all particles in the file
+  number_of_events: 10
+
+Particles:
+  particle_file_path: ../SLabSimu/data/muons.json
+
+Geometry:
+  SLab:
+    Scintillator:
+      x_length: 20.0 #cm
+      y_length: 20.0 #cm
+      z_length: 2.0 #cm
+    
+    ESR:
+      thickness: 0.1 #cm
+    
+    Tape:
+      thickness: 0.1 #cm
+
+    SiPM:
+      x_length: 1.0 #cm
+      y_length: 1.0 #cm
+      z_length: 0.1 #cm
+    
+    Battery:
+      x_length: 19.4 # cm
+      y_length: 27.0  # cm
+      z_length: 13.3  # cm
+
+    Layout:
+      number_of_slabs: 4
+      slab_offsets: [-9.63, 4.2, 4.2, 4.2]  # cm
+  
+Property:
+  scintillator:
+    spectrum_file: ../SLabSimu/config/EJ200ScintSpectrum.txt
+
+  sipm:
+    pde_file: ../SLabSimu/config/SiPM_PDE.txt
+
+  sea_optical_property:
+    path_file: ../SLabSimu/config/optical_properties.yaml
+  
+  Atmosphere:
+    density:  0.001205 #g / cm3
