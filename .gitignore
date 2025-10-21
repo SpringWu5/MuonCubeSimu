@@ -1,0 +1,36 @@
+# Build directories
+build/
+cmake-build-*/
+
+# Data files
+data/muons.json
+
+# Simulation output files
+*.root
+*.csv
+*.dat
+
+# Analysis results
+results/*.png
+results/*.jpg
+results/*.csv
+results/*.json
+results/*.h5
+results/*.pkl
+
+# ML model files
+ml_models/models/
+ml_models/checkpoints/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# AI knowledge base
+.basic_memory/
