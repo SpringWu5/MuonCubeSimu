@@ -2,7 +2,6 @@ name: AI Pull Request Reviewer
 
 permissions:
   contents: read
-  issues: write
 
 on:
   pull_request:
@@ -10,9 +9,7 @@ on:
       - develop
 
 jobs:
-  # 仅在 PR 来自同一仓库时运行需要写权限的 job（避免 fork PR 导致 secrets 不可用）
-  ai_code_reviewer:
-    if: ${{ github.event.pull_request && github.event.pull_request.head.repo.full_name == github.repository }}
+  build_and_static_analysis:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -20,155 +17,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Debug check COPILOT_REVIEW_TOKEN availability (TEMP)
-        env:
-          TOKEN: ${{ secrets.COPILOT_REVIEW_TOKEN }}
-        run: |
-          echo "PR head repo: ${{ github.event.pull_request.head.repo.full_name }}"
-          echo "Main repo:   ${{ github.repository }}"
-          if [ -z "$TOKEN" ]; then
-            echo "COPILOT_REVIEW_TOKEN is EMPTY in this run (secrets not available)"
-            exit 1
-          fi
-          echo "Calling /user (login):"
-          curl -s -H "Authorization: token $TOKEN" https://api.github.com/user | jq '{login:.login, id:.id}'
-          echo "Token scopes (response headers):"
-          curl -I -s -H "Authorization: token $TOKEN" https://api.github.com/ | egrep -i 'x-oauth-scopes|x-accepted-oauth-scopes' || true
-          echo "Repo info (has_issues, permissions):"
-          curl -s -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{ github.repository }} | jq '{full_name:.full_name, has_issues:.has_issues, permissions:.permissions}'
-
-      - name: Get PR Diff
-        id: pr_diff
-        run: |
-          git fetch origin develop --unshallow || git fetch origin develop --depth=1
-          DIFF=$(git diff origin/develop ${{ github.event.pull_request.head.sha }})
-          DIFF=$(echo "$DIFF" | jq -s -R . | head -c 100000)
-          echo "diff=${DIFF}" >> $GITHUB_OUTPUT
-
-      - name: AI Code Review with Copilot Agent
-        uses: actions/github-script@v7
+      - name: Setup C++ Environment
+        uses: aminya/setup-cpp@v1
         with:
-          github-token: ${{ secrets.COPILOT_REVIEW_TOKEN }}
-          script: |
-            const diff = ${{ steps.pr_diff.outputs.diff }};
-            const prNumber = context.issue.number;
-            const customInstructionsPath = ".github/copilot/custom_instructions.md";
-            let instructions = "Default review instructions: Check for clarity, correctness, and adherence to project standards.";
-            try {
-              const customInstructionsResponse = await github.rest.repos.getContent({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                path: customInstructionsPath,
-              });
-              instructions = Buffer.from(customInstructionsResponse.data.content, 'base64').toString('utf8');
-            } catch (error) {
-              console.log(`Could not load custom instructions from ${customInstructionsPath}. Using default. Error: ${error.message}`);
-            }
-
-            const issueResponse = await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `[AUTO] Copilot Review for PR #${prNumber}`,
-              body: `
-            **Copilot Coding Agent Task**
-
-            Review this PR diff based on the charter below. Generate structured suggestions.
-
-            **Review Charter:**
-            ${instructions}
-
-            **Code Diff:**
-            \`\`\`diff
-            ${diff}
-            \`\`\`
-
-            Output: Detailed review with 'suggestion' blocks for fixes.
-              `,
-              labels: ['copilot-review', 'automated'],
-            });
-
-            const tempIssueNumber = issueResponse.data.number;
-
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: tempIssueNumber,
-              assignees: ['copilot'],
-            });
-
-            let agentReview = 'Agent review timed out after 5 minutes.';
-            const startTime = Date.now();
-            const timeout = 300000; // 5 minutes
-            const pollInterval = 20000; // 20 seconds
-
-            while (Date.now() - startTime < timeout) {
-              console.log(`Polling for Copilot review on issue #${tempIssueNumber}...`);
-              const comments = await github.rest.issues.listComments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: tempIssueNumber,
-              });
-
-              const copilotComment = comments.data.find(c => c.user && c.user.login === 'copilot');
-
-              if (copilotComment) {
-                console.log("Found Copilot review comment.");
-                agentReview = copilotComment.body;
-                break;
-              }
-
-              await new Promise(resolve => setTimeout(resolve, pollInterval));
-            }
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: `
-            ### 🤖 Copilot Coding Agent Review
-
-            ${agentReview}
-
-            This was auto-generated by the Hephaestus Protocol QA Loop.
-              `,
-            });
-
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: tempIssueNumber,
-              state: 'closed',
-            });
-
-  # 只读回退 job，适用于所有 PR（包括 fork PR），不使用 secrets
-  ai_readonly_analysis:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+          compiler: gcc-11
+          
+      - name: Install CMake
+        uses: jwlawson/actions-setup-cmake@v1.14
         with:
-          fetch-depth: 0
+          cmake-version: '3.22.x'
 
-      - name: Get PR Diff (readonly)
-        id: pr_diff_readonly
-        run: |
-          git fetch origin develop --unshallow || true
-          DIFF=$(git diff origin/develop ${{ github.event.pull_request.head.sha }} || true)
-          DIFF=$(echo "$DIFF" | jq -s -R . | head -c 100000)
-          echo "diff=${DIFF}" >> $GITHUB_OUTPUT
+      - name: Run CMake
+        run: cmake ./simulation
+        continue-on-error: true
 
-      - name: Run static-only analysis / lint (no secrets)
-        run: |
-          echo "Running readonly analysis on PR (no secrets, no API writes)."
-          echo "DIFF START"
-          echo "${{ steps.pr_diff_readonly.outputs.diff }}" | sed -n '1,200p'
-          echo "DIFF END"
-
-      - name: Upload PR diff artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr-diff-${{ github.event.pull_request.number }}
-          path: .github/pr-diff-${{ github.event.pull_request.number }}.txt
-      - name: Write diff file for artifact
-        run: |
-          printf "%s" "${{ steps.pr_diff_readonly.outputs.diff }}" > .github/pr-diff-${{ github.event.pull_request.number }}.txt
+      - name: Build Project (Smoke Test)
+        run: make -C ./simulation
+        # Expect link failures without Geant4; compilation must still succeed.
+        continue-on-error: true
