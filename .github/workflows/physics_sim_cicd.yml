@@ -11,7 +11,7 @@ on:
 
 jobs:
   trigger_simulation:
-    # Only run for comments on PRs (not plain issues)
+    # 仅在 PR 上的评论才触发（不是普通 Issue）
     if: ${{ github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     steps:
@@ -33,7 +33,7 @@ jobs:
           else
             echo "size=" >> $GITHUB_OUTPUT
           fi
-          echo "Detected size: $(sed -n 's/^size=//p' $GITHUB_OUTPUT)"
+          echo "Detected size (in this step): $(sed -n 's/^size=//p' "$GITHUB_OUTPUT")"
 
       - name: Comment when command not recognized
         if: ${{ steps.get_size.outputs.size == '' }}
@@ -69,14 +69,24 @@ jobs:
             });
 
       - name: Validate INPAC secrets
+        shell: bash
         run: |
-          : "${{ secrets.INPAC_HOST?Missing INPAC_HOST }}"
-          : "${{ secrets.INPAC_USERNAME?Missing INPAC_USERNAME }}"
-          : "${{ secrets.INPAC_SSH_PRIVATE_KEY?Missing INPAC_SSH_PRIVATE_KEY }}"
-          : "${{ secrets.INPAC_PORT?Missing INPAC_PORT }}"
+          set -euo pipefail
+          missing=0
+          check() { if [ -z "$1" ]; then echo "Missing secret: $2"; missing=1; fi; }
+          check "${{ secrets.INPAC_HOST }}" "INPAC_HOST"
+          check "${{ secrets.INPAC_USERNAME }}" "INPAC_USERNAME"
+          check "${{ secrets.INPAC_SSH_PRIVATE_KEY }}" "INPAC_SSH_PRIVATE_KEY"
+          check "${{ secrets.INPAC_PORT }}" "INPAC_PORT"
+          if [ "$missing" -eq 1 ]; then
+            echo "One or more required INPAC_* secrets are missing. Failing the job."
+            exit 1
+          fi
           echo "All INPAC secrets are present."
 
       - name: Deploy and Run Simulation on INPAC
+        id: remote_run
+        continue-on-error: true
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.INPAC_HOST }}
@@ -84,11 +94,11 @@ jobs:
           key: ${{ secrets.INPAC_SSH_PRIVATE_KEY }}
           port: ${{ secrets.INPAC_PORT }}
           script: |
-            set -e
+            set -euo pipefail
             export REPO_DIR="/lustre/neutrino/wujiacheng/hephaestus-ci/MuonSLab/MuonCubeSimu/${{ github.event.issue.number }}"
             export PR_SHA=${{ github.event.issue.pull_request.head.sha }}
             export SIM_SIZE=${{ steps.get_size.outputs.size }}
-            
+
             echo "--- Deploying code to ${REPO_DIR} ---"
             if [ -d "$REPO_DIR" ]; then
               cd "$REPO_DIR"
@@ -99,15 +109,16 @@ jobs:
               cd "$REPO_DIR"
               git checkout "$PR_SHA"
             fi
-            
+
             echo "--- Sourcing Project Environment ---"
+            # Project-specific environment
             source ~mocen/hailing.env
-            
+
             echo "--- Building Simulation ---"
             cd simulation
             cmake .
             make -j8
-            
+
             echo "--- Running Simulation (${SIM_SIZE}) ---"
             if [ "$SIM_SIZE" = "small" ]; then
               ./SLabSimu -m small_run.mac
@@ -122,16 +133,47 @@ jobs:
               echo "--- Creating HTCondor submission file ---"
               cd ..
               mkdir -p "${REPO_DIR}/logs"
-              cat > job.sub << 'EOF'
+              # 使用未加引号的 EOF，让变量在远端 shell 中展开为实际路径
+              cat > job.sub << EOF
               Universe   = vanilla
               Executable = ${REPO_DIR}/simulation/SLabSimu
               Arguments  = -m run.mac
-              Log        = ${REPO_DIR}/logs/job_$(ClusterId).log
-              Output     = ${REPO_DIR}/logs/job_$(ClusterId).out
-              Error      = ${REPO_DIR}/logs/job_$(ClusterId).err
+              Log        = ${REPO_DIR}/logs/job_\$(ClusterId).log
+              Output     = ${REPO_DIR}/logs/job_\$(ClusterId).out
+              Error      = ${REPO_DIR}/logs/job_\$(ClusterId).err
               request_cpus = 8
               should_transfer_files = NO
               EOF
               JOB_ID=$(condor_submit job.sub | grep -oP 'submitted to cluster \K\d+')
               echo "--- Submitted job to HTCondor with ID: ${JOB_ID} ---"
-              # Intentionally not using gh CLI on remote host
+            fi
+
+      - name: Comment result (success)
+        if: ${{ steps.remote_run.outcome == 'success' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: "✅ Simulation job finished successfully on INPAC."
+            });
+
+      - name: Comment result (failure)
+        if: ${{ steps.remote_run.outcome != 'success' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: "❌ Simulation job failed on INPAC. Check workflow logs for details."
+            });
+
+      - name: Fail job if remote failed
+        if: ${{ steps.remote_run.outcome != 'success' }}
+        run: exit 1
