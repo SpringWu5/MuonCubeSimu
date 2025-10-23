@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Debug: check COPILOT_REVIEW_TOKEN availability (TEMP)
+      - name: Debug check COPILOT_REVIEW_TOKEN availability (TEMP)
         env:
           TOKEN: ${{ secrets.COPILOT_REVIEW_TOKEN }}
         run: |
@@ -102,7 +102,7 @@ jobs:
             const pollInterval = 20000; // 20 seconds
 
             while (Date.now() - startTime < timeout) {
-              console.log(`Polling for Copilot's review on issue #${tempIssueNumber}...`);
+              console.log(`Polling for Copilot review on issue #${tempIssueNumber}...`);
               const comments = await github.rest.issues.listComments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -112,7 +112,7 @@ jobs:
               const copilotComment = comments.data.find(c => c.user && c.user.login === 'copilot');
 
               if (copilotComment) {
-                console.log("Found Copilot's review comment.");
+                console.log("Found Copilot review comment.");
                 agentReview = copilotComment.body;
                 break;
               }
