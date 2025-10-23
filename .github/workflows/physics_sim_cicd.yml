@@ -1,29 +1,61 @@
 name: Physics Simulation CI/CD
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 on:
   issue_comment:
     types: [created]
 
 jobs:
   trigger_simulation:
-    if: |
-      github.event.issue.pull_request &&
-      (
-        contains(github.event.comment.body, '@bot /run-simulation small') ||
-        contains(github.event.comment.body, '@bot /run-simulation large')
-      )
+    # Only run for comments on PRs (not plain issues)
+    if: ${{ github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     steps:
+      - name: Debug event
+        run: |
+          echo "Actor:               ${{ github.actor }}"
+          echo "Repo:                ${{ github.repository }}"
+          echo "PR #:                ${{ github.event.issue.number }}"
+          printf "Comment body:\n%s\n" "${{ github.event.comment.body }}"
+
       - name: Extract Simulation Size
         id: get_size
         run: |
-          if [[ "${{ github.event.comment.body }}" == *"small"* ]]; then
+          BODY="${{ github.event.comment.body }}"
+          if [[ "$BODY" == *"/run-simulation small"* ]]; then
             echo "size=small" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.event.comment.body }}" == *"large"* ]]; then
+          elif [[ "$BODY" == *"/run-simulation large"* ]]; then
             echo "size=large" >> $GITHUB_OUTPUT
+          else
+            echo "size=" >> $GITHUB_OUTPUT
           fi
+          echo "Detected size: $(sed -n 's/^size=//p' $GITHUB_OUTPUT)"
+
+      - name: Comment when command not recognized
+        if: ${{ steps.get_size.outputs.size == '' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: "⚠️ Command not recognized. Use:\n\n`@bot /run-simulation small` or `@bot /run-simulation large`"
+            });
+
+      - name: Stop if no size parsed
+        if: ${{ steps.get_size.outputs.size == '' }}
+        run: |
+          echo "No valid /run-simulation command found. Stopping."
+          exit 0
 
       - name: Post Acknowledgement Comment
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -36,6 +68,14 @@ jobs:
               body: `✅ Received command to run **${size}** simulation. Connecting to INPAC cluster and deploying code...`,
             });
 
+      - name: Validate INPAC secrets
+        run: |
+          : "${{ secrets.INPAC_HOST?Missing INPAC_HOST }}"
+          : "${{ secrets.INPAC_USERNAME?Missing INPAC_USERNAME }}"
+          : "${{ secrets.INPAC_SSH_PRIVATE_KEY?Missing INPAC_SSH_PRIVATE_KEY }}"
+          : "${{ secrets.INPAC_PORT?Missing INPAC_PORT }}"
+          echo "All INPAC secrets are present."
+
       - name: Deploy and Run Simulation on INPAC
         uses: appleboy/ssh-action@master
         with:
@@ -44,67 +84,54 @@ jobs:
           key: ${{ secrets.INPAC_SSH_PRIVATE_KEY }}
           port: ${{ secrets.INPAC_PORT }}
           script: |
-            set -e # Exit immediately if a command exits with a non-zero status.
+            set -e
             export REPO_DIR="/lustre/neutrino/wujiacheng/hephaestus-ci/MuonSLab/MuonCubeSimu/${{ github.event.issue.number }}"
             export PR_SHA=${{ github.event.issue.pull_request.head.sha }}
             export SIM_SIZE=${{ steps.get_size.outputs.size }}
             
             echo "--- Deploying code to ${REPO_DIR} ---"
             if [ -d "$REPO_DIR" ]; then
-              cd $REPO_DIR
+              cd "$REPO_DIR"
               git fetch origin
-              git reset --hard $PR_SHA
+              git reset --hard "$PR_SHA"
             else
-              git clone https://github.com/${{ github.repository }}.git $REPO_DIR
-              cd $REPO_DIR
-              git checkout $PR_SHA
+              git clone https://github.com/${{ github.repository }}.git "$REPO_DIR"
+              cd "$REPO_DIR"
+              git checkout "$PR_SHA"
             fi
             
             echo "--- Sourcing Project Environment ---"
-            # --- CRITICAL: Source the project-specific environment ---
             source ~mocen/hailing.env
             
             echo "--- Building Simulation ---"
-            # Assuming the repo is cloned at the top level, cd into simulation subdir
             cd simulation
             cmake .
             make -j8
             
             echo "--- Running Simulation (${SIM_SIZE}) ---"
-            if [ "$SIM_SIZE" == "small" ]; then
-              # Use a dedicated, non-visual macro for the small run
+            if [ "$SIM_SIZE" = "small" ]; then
               ./SLabSimu -m small_run.mac
-              
-              echo "--- Running Post-Processing for small job ---"
-              # The post_process script is in the analysis/scripts directory
-              python ../analysis/scripts/post_process.py --job-id "small_run_${{ github.event.issue.number }}" --status "success" --pr-number "${{ github.event.issue.number }}" --repo-owner "${{ github.repository_owner }}" --repo-name "$(echo '${{ github.repository }}' | cut -d'/' -f2)" --token "${{ secrets.GITHUB_TOKEN }}"
-
-            elif [ "$SIM_SIZE" == "large" ]; then
+              echo "--- Post-Processing (small) ---"
+              python ../analysis/scripts/post_process.py \
+                --job-id "small_run_${{ github.event.issue.number }}" \
+                --status "success" \
+                --pr-number "${{ github.event.issue.number }}" \
+                --repo-owner "${{ github.repository_owner }}" \
+                --repo-name "$(basename '${{ github.repository }}')"
+            else
               echo "--- Creating HTCondor submission file ---"
-              # Go back to the repo root to create the submission file
               cd ..
-              cat << EOF > job.sub
+              mkdir -p "${REPO_DIR}/logs"
+              cat > job.sub << 'EOF'
               Universe   = vanilla
               Executable = ${REPO_DIR}/simulation/SLabSimu
               Arguments  = -m run.mac
-
-              Log        = ${REPO_DIR}/logs/job_\$(ClusterId).log
-              Output     = ${REPO_DIR}/logs/job_\$(ClusterId).out
-              Error      = ${REPO_DIR}/logs/job_\$(ClusterId).err
-
+              Log        = ${REPO_DIR}/logs/job_$(ClusterId).log
+              Output     = ${REPO_DIR}/logs/job_$(ClusterId).out
+              Error      = ${REPO_DIR}/logs/job_$(ClusterId).err
               request_cpus = 8
-              
               should_transfer_files = NO
-
-              +PostCmd = "${REPO_DIR}/analysis/scripts/post_process.py"
-              +PostArguments = "--job-id \$(ClusterId) --status success --pr-number ${{ github.event.issue.number }} --repo-owner ${{ github.repository_owner }} --repo-name $(echo '${{ github.repository }}' | cut -d'/' -f2) --token ${{ secrets.GITHUB_TOKEN }}"
-
-              Queue
               EOF
-              
-              mkdir -p ${REPO_DIR}/logs
               JOB_ID=$(condor_submit job.sub | grep -oP 'submitted to cluster \K\d+')
               echo "--- Submitted job to HTCondor with ID: ${JOB_ID} ---"
-              
-              gh pr comment ${{ github.event.issue.number }} --body "🚀 **Large** simulation submitted to HTCondor cluster. Job ID: \`${JOB_ID}\`"
-            fi
+              # Intentionally not using gh CLI on remote host
