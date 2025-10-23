@@ -112,7 +112,9 @@ jobs:
 
             echo "--- Sourcing Project Environment ---"
             # Project-specific environment
+            set +u
             source ~mocen/hailing.env
+            set -u
 
             echo "--- Building Simulation ---"
             cd simulation
