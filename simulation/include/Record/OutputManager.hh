@@ -39,8 +39,10 @@ public:
     }
 
     void SetEventID(Int_t eID) { fEventID = eID; }
+    void SetTotalEnergyDeposition(Float_t energy) { fTotalEnergyDeposition = energy; }
 
     Int_t GetEventID() { return fEventID; }
+    Float_t GetTotalEnergyDeposition() { return fTotalEnergyDeposition; }
     Muons* GetMuons() { return fMuons; }
     Hits* GetSLabHits() { return fSLabHits; }
     Hits* GetHits() { return fHits; }
@@ -53,6 +55,7 @@ private:
     TTree*   fOutputTree;
 
     Int_t    fEventID;
+    Float_t  fTotalEnergyDeposition;
     Muons*   fMuons;
     Hits*    fSLabHits;
     Hits*    fHits;

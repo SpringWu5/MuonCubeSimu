@@ -7,18 +7,22 @@
 #include "G4ParticleGun.hh"
 #include "G4PrimaryParticle.hh"
 #include "G4PrimaryVertex.hh"
+#include <vector>
 
 #include "Action/EventAction.hh"
 #include "Action/SteppingAction.hh"
 #include "Util/Logger.hh"
 
-EventAction::EventAction() : fEventID(-1) {}
+EventAction::EventAction() : fEventID(-1), fTotalEnergyDeposition(0.0) {}
 
 EventAction::~EventAction() {}
 
 void EventAction::BeginOfEventAction(const G4Event *event) {
     // Update event ID
     fEventID = event->GetEventID();
+    
+    // Initialize total energy deposition accumulator
+    fTotalEnergyDeposition = 0.0;
     
     // Log event start
     LogUtils::log_info("Starting Event ID: " + std::to_string(fEventID));
@@ -69,6 +73,28 @@ void EventAction::EndOfEventAction(const G4Event* event)
 {
     // Log completion
     LogUtils::log_info("End of event " + std::to_string(event->GetEventID()));
+    
+    // Sum up the energy deposition from all sensitive detector hits
+    fTotalEnergyDeposition = 0.0;
+    
+    // Get hits collections from OutputManager
+    Hits* slabHits = OutputManager::Instance()->GetSLabHits();
+    Hits* sipmHits = OutputManager::Instance()->GetHits();
+    
+    // Accumulate energy from SLab hits
+    std::vector<Float_t> slabEnergy = slabHits->GetEnergy();
+    for (const auto& energy : slabEnergy) {
+        fTotalEnergyDeposition += energy;
+    }
+    
+    // Accumulate energy from SiPM hits
+    std::vector<Float_t> sipmEnergy = sipmHits->GetEnergy();
+    for (const auto& energy : sipmEnergy) {
+        fTotalEnergyDeposition += energy;
+    }
+    
+    // Pass the total energy deposition to OutputManager
+    OutputManager::Instance()->SetTotalEnergyDeposition(fTotalEnergyDeposition);
     
     // First log unique particle statistics
     LogUtils::log_unique_statistics(event->GetEventID());

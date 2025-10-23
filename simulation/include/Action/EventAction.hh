@@ -17,6 +17,7 @@ public:
 
 private:
     G4int fEventID;
+    Float_t fTotalEnergyDeposition;
 };
 
 

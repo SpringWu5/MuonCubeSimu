@@ -2,7 +2,7 @@
 #include "Record/OutputManager.hh"
 
 
-OutputManager::OutputManager(): fOutputFile(0), fOutputTree(0){ 
+OutputManager::OutputManager(): fOutputFile(0), fOutputTree(0), fTotalEnergyDeposition(0.0){ 
     fMuons = new Muons();
     fSLabHits = new Hits();
     fHits = new Hits();
@@ -25,6 +25,7 @@ void OutputManager::Book(G4String outfile)
     //info about event statistics
     fOutputTree = new TTree("Simu", "Simulation Tree");
     fOutputTree->Branch("eventID", &fEventID, "eventID/I");
+    fOutputTree->Branch("totalEnergyDeposition", &fTotalEnergyDeposition, "totalEnergyDeposition/F");
     fMuons->BookBranches(fOutputTree);
     fSLabHits->BookBranches(fOutputTree, "SLab");
     fHits->BookBranches(fOutputTree, "SiPM");
