@@ -41,3 +41,4 @@ Thumbs.db
 # AI knowledge base
 .basic_memory/\n# Execution logs from AI agents\nlogs/
 logs/
+*.bak
