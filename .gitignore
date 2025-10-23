@@ -28,9 +28,14 @@ ml_models/checkpoints/
 *.swp
 *.swo
 
+# CLI files
+.gemini/
+.claude/
+.qwen/
+
 # OS files
 .DS_Store
 Thumbs.db
 
 # AI knowledge base
-.basic_memory/
+.basic_memory/\n# Execution logs from AI agents\nlogs/
