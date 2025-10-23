@@ -1,6 +1,5 @@
 name: AI Pull Request Reviewer
 
-# 明确需要的最低权限（有助于可见性）
 permissions:
   contents: read
   issues: write
@@ -11,7 +10,7 @@ on:
       - develop
 
 jobs:
-  # 仅在 PR 来自同一仓库时运行会使用到 secrets 的写操作
+  # 仅在 PR 来自同一仓库时运行需要写权限的 job（避免 fork PR 导致 secrets 不可用）
   ai_code_reviewer:
     if: ${{ github.event.pull_request && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
@@ -22,7 +21,6 @@ jobs:
           fetch-depth: 0
 
       - name: Debug: check COPILOT_REVIEW_TOKEN availability (TEMP)
-        # 这是临时 debug：确认 secret 在 runner 中可用以及 token scopes
         env:
           TOKEN: ${{ secrets.COPILOT_REVIEW_TOKEN }}
         run: |
@@ -35,14 +33,14 @@ jobs:
           echo "Calling /user (login):"
           curl -s -H "Authorization: token $TOKEN" https://api.github.com/user | jq '{login:.login, id:.id}'
           echo "Token scopes (response headers):"
-          curl -I -s -H "Authorization: token $TOKEN" https://api.github.com/ | egrep -i 'x-oauth-scopes|x-accepted-oauth-scopes'
+          curl -I -s -H "Authorization: token $TOKEN" https://api.github.com/ | egrep -i 'x-oauth-scopes|x-accepted-oauth-scopes' || true
           echo "Repo info (has_issues, permissions):"
           curl -s -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/${{ github.repository }} | jq '{full_name:.full_name, has_issues:.has_issues, permissions:.permissions}'
 
       - name: Get PR Diff
         id: pr_diff
         run: |
-          git fetch origin develop --unshallow
+          git fetch origin develop --unshallow || git fetch origin develop --depth=1
           DIFF=$(git diff origin/develop ${{ github.event.pull_request.head.sha }})
           DIFF=$(echo "$DIFF" | jq -s -R . | head -c 100000)
           echo "diff=${DIFF}" >> $GITHUB_OUTPUT
@@ -52,13 +50,97 @@ jobs:
         with:
           github-token: ${{ secrets.COPILOT_REVIEW_TOKEN }}
           script: |
-            // 你的原始脚本（保持不变），会在同仓库 PR 中运行
             const diff = ${{ steps.pr_diff.outputs.diff }};
             const prNumber = context.issue.number;
-            // ... 剩余脚本略 ...
-            console.log("Running copilot agent script...");
+            const customInstructionsPath = ".github/copilot/custom_instructions.md";
+            let instructions = "Default review instructions: Check for clarity, correctness, and adherence to project standards.";
+            try {
+              const customInstructionsResponse = await github.rest.repos.getContent({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                path: customInstructionsPath,
+              });
+              instructions = Buffer.from(customInstructionsResponse.data.content, 'base64').toString('utf8');
+            } catch (error) {
+              console.log(`Could not load custom instructions from ${customInstructionsPath}. Using default. Error: ${error.message}`);
+            }
 
-  # 对于来自 fork（或任何 PR）运行的只读 fallback job — 不使用任何写权限或 secrets
+            const issueResponse = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[AUTO] Copilot Review for PR #${prNumber}`,
+              body: `
+            **Copilot Coding Agent Task**
+
+            Review this PR diff based on the charter below. Generate structured suggestions.
+
+            **Review Charter:**
+            ${instructions}
+
+            **Code Diff:**
+            \`\`\`diff
+            ${diff}
+            \`\`\`
+
+            Output: Detailed review with 'suggestion' blocks for fixes.
+              `,
+              labels: ['copilot-review', 'automated'],
+            });
+
+            const tempIssueNumber = issueResponse.data.number;
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: tempIssueNumber,
+              assignees: ['copilot'],
+            });
+
+            let agentReview = 'Agent review timed out after 5 minutes.';
+            const startTime = Date.now();
+            const timeout = 300000; // 5 minutes
+            const pollInterval = 20000; // 20 seconds
+
+            while (Date.now() - startTime < timeout) {
+              console.log(`Polling for Copilot's review on issue #${tempIssueNumber}...`);
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: tempIssueNumber,
+              });
+
+              const copilotComment = comments.data.find(c => c.user && c.user.login === 'copilot');
+
+              if (copilotComment) {
+                console.log("Found Copilot's review comment.");
+                agentReview = copilotComment.body;
+                break;
+              }
+
+              await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `
+            ### 🤖 Copilot Coding Agent Review
+
+            ${agentReview}
+
+            This was auto-generated by the Hephaestus Protocol QA Loop.
+              `,
+            });
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: tempIssueNumber,
+              state: 'closed',
+            });
+
+  # 只读回退 job，适用于所有 PR（包括 fork PR），不使用 secrets
   ai_readonly_analysis:
     runs-on: ubuntu-latest
     steps:
@@ -78,15 +160,15 @@ jobs:
       - name: Run static-only analysis / lint (no secrets)
         run: |
           echo "Running readonly analysis on PR (no secrets, no API writes)."
-          # 在这里放只读的审查脚本，比如静态检查或把结果上传为 artifact
-          # 示例：输出差异片段到日志
           echo "DIFF START"
           echo "${{ steps.pr_diff_readonly.outputs.diff }}" | sed -n '1,200p'
           echo "DIFF END"
-      - name: Upload review artifact (optional)
+
+      - name: Upload PR diff artifact
         uses: actions/upload-artifact@v4
         with:
           name: pr-diff-${{ github.event.pull_request.number }}
-          path: |
-            # 生成一个 small file 包含 diff
-            <(echo "${{ steps.pr_diff_readonly.outputs.diff }}")
+          path: .github/pr-diff-${{ github.event.pull_request.number }}.txt
+      - name: Write diff file for artifact
+        run: |
+          printf "%s" "${{ steps.pr_diff_readonly.outputs.diff }}" > .github/pr-diff-${{ github.event.pull_request.number }}.txt
