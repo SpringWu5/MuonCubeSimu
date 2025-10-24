@@ -25,7 +25,7 @@ jobs:
       - name: Extract Simulation Size
         id: get_size
         run: |
-          BODY="${{ github.event.comment.body }}"
+          BODY=$(echo "${{ github.event.comment.body }}" | tr -d '\r')
           if [[ "$BODY" == *"/run-simulation small"* ]]; then
             echo "size=small" >> $GITHUB_OUTPUT
           elif [[ "$BODY" == *"/run-simulation large"* ]]; then
@@ -156,17 +156,15 @@ jobs:
               echo "--- Creating HTCondor submission file ---"
               cd ..
               mkdir -p "${REPO_DIR}/logs"
-              # 使用未加引号的 EOF，让变量在远端 shell 中展开为实际路径
-              cat > job.sub <<-EOF
-              Universe   = vanilla
-              Executable = ${REPO_DIR}/simulation/SLabSimu
-              Arguments  = -m run.mac
-              Log        = ${REPO_DIR}/logs/job_\$(ClusterId).log
-              Output     = ${REPO_DIR}/logs/job_\$(ClusterId).out
-              Error      = ${REPO_DIR}/logs/job_\$(ClusterId).err
-              request_cpus = 8
-              should_transfer_files = NO
-              EOF
+              printf '%s\n' \
+                  "Universe   = vanilla" \
+                  "Executable = ${REPO_DIR}/simulation/SLabSimu" \
+                  "Arguments  = -m run.mac" \
+                  "Log        = ${REPO_DIR}/logs/job_\$(ClusterId).log" \
+                  "Output     = ${REPO_DIR}/logs/job_\$(ClusterId).out" \
+                  "Error      = ${REPO_DIR}/logs/job_\$(ClusterId).err" \
+                  "request_cpus = 8" \
+                  "should_transfer_files = NO" > job.sub
               JOB_ID=$(condor_submit job.sub | grep -oP 'submitted to cluster \K\d+')
               echo "--- Submitted job to HTCondor with ID: ${JOB_ID} ---"
             fi
