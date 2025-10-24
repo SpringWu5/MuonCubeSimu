@@ -157,7 +157,7 @@ jobs:
               cd ..
               mkdir -p "${REPO_DIR}/logs"
               # 使用未加引号的 EOF，让变量在远端 shell 中展开为实际路径
-              cat > job.sub << EOF
+              cat > job.sub <<-EOF
               Universe   = vanilla
               Executable = ${REPO_DIR}/simulation/SLabSimu
               Arguments  = -m run.mac
@@ -166,7 +166,7 @@ jobs:
               Error      = ${REPO_DIR}/logs/job_\$(ClusterId).err
               request_cpus = 8
               should_transfer_files = NO
-EOF
+              EOF
               JOB_ID=$(condor_submit job.sub | grep -oP 'submitted to cluster \K\d+')
               echo "--- Submitted job to HTCondor with ID: ${JOB_ID} ---"
             fi
