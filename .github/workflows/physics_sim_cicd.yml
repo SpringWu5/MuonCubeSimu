@@ -166,7 +166,7 @@ jobs:
               Error      = ${REPO_DIR}/logs/job_\$(ClusterId).err
               request_cpus = 8
               should_transfer_files = NO
-              EOF
+EOF
               JOB_ID=$(condor_submit job.sub | grep -oP 'submitted to cluster \K\d+')
               echo "--- Submitted job to HTCondor with ID: ${JOB_ID} ---"
             fi
