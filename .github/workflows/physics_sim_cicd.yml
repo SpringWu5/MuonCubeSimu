@@ -84,6 +84,20 @@ jobs:
           fi
           echo "All INPAC secrets are present."
 
+      - name: Get PR SHA
+        id: get_sha
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string # 确保输出是字符串
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            return pr.data.head.sha;
+
       - name: Deploy and Run Simulation on INPAC
         id: remote_run
         continue-on-error: true
@@ -98,6 +112,19 @@ jobs:
             export REPO_DIR="/lustre/neutrino/wujiacheng/hephaestus-ci/MuonSLab/MuonCubeSimu/${{ github.event.issue.number }}"
             export PR_SHA=${{ github.event.issue.pull_request.head.sha }}
             export SIM_SIZE=${{ steps.get_size.outputs.size }}
+
+            echo "--- Using PR Head SHA: ${PR_SHA} ---" # 增加一个调试输出，方便确认
+
+            echo "--- Deploying code to ${REPO_DIR} ---"
+            if [ -d "$REPO_DIR" ]; then
+              cd "$REPO_DIR"
+              git fetch origin
+              git reset --hard "$PR_SHA"
+            else
+              git clone https://github.com/${{ github.repository }}.git "$REPO_DIR"
+              cd "$REPO_DIR"
+              git checkout "$PR_SHA"
+            fi
 
             echo "--- Deploying code to ${REPO_DIR} ---"
             if [ -d "$REPO_DIR" ]; then
