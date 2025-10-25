@@ -3,7 +3,7 @@ Run:
   number_of_events: 20
 
 Particles:
-  particle_file_path: ../SLabSimu/data/muons.json
+  particle_file_path: simulation/data/muons.json
 
 Geometry:
   SLab:
@@ -34,13 +34,13 @@ Geometry:
   
 Property:
   scintillator:
-    spectrum_file: ../SLabSimu/config/EJ200ScintSpectrum.txt
+    spectrum_file: simulation/config/EJ200ScintSpectrum.txt
 
   sipm:
-    pde_file: ../SLabSimu/config/SiPM_PDE.txt
+    pde_file: simulation/config/SiPM_PDE.txt
 
   sea_optical_property:
-    path_file: ../SLabSimu/config/optical_properties.yaml
+    path_file: simulation/config/optical_properties.yaml
   
   Atmosphere:
     density:  0.001205 #g / cm3

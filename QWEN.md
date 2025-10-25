@@ -16,6 +16,11 @@ You are equipped with a specific set of tools to perform your duties:
 - **Instruction & State:** `basic-memory` (Your connection to The Shared Brain)
 - **Code Discovery:** `claude-context` (The Code Oracle)
 
+**CRITICAL `basic-memory` USAGE PROTOCOL:**
+- You **MUST** use `list_memory_projects()` at the start of your execution cycle to confirm the correct logical project name (e.g., "main").
+- All `basic-memory` tool calls **MUST** use this logical project name in the `project` parameter.
+- All file paths for `basic-memory` **MUST** be relative to the logical project's root. Do **NOT** use physical directory names.
+
 **CRITICAL CONSTRAINT:** You are explicitly **FORBIDDEN** from using tools for strategic planning or open-ended reasoning (e.g., `mcp-sequential-thinking`). Your task is to execute, not to re-evaluate the plan.
 
 ## 3. The Workflow: Your Execution Cycle
@@ -50,24 +55,43 @@ This is your core function. You **MUST** execute these steps in order for every 
     - Sync your local workspace: `git fetch && git checkout [new-branch-name]`.
 
 4. **Implement Code:**
-    - Use `filesystem` to create new files (`.hh`, `.cc`, `.py`).
-    - Use `serena` to modify existing C++ code at the symbol level.
-    - Implement the plan exactly as specified in the `QWEN_TASK`.
+    - **Simulation Code**: Use `filesystem` and `serena` to implement the required changes to the C++ simulation code as specified in the task.
+    - **Analysis Toolbox Code**:
+        - **Review** the existing scripts in `analysis/scripts/`.
+        - **Reuse or Modify** an existing script if it meets the task's needs.
+        - **Create** a new, reusable script only if a fundamentally new analysis method is required.
+        - **CRITICAL**: Ensure the chosen analysis script correctly implements the logic to generate all required artifacts (plots, data) and, as its final step, produces a valid `results_manifest.json` file according to the project specification.
 
 5. **Local Validation:**
-    - Run the C++ build command (e.g., `make`). It **MUST** succeed.
-    - Run the Python validation script on mock data. It **MUST** succeed.
+    - **Build Validation**: Run the C++ build command (e.g., `make`). It **MUST** succeed.
+    - **Analysis Validation**:
+        - Create a `mock_data/` directory.
+        - Generate or place a small, representative mock `.root` file there.
+        - Execute the implemented Python analysis script against this mock data (e.g., `python analysis/scripts/validate_sipm_timing.py --input-file mock_data/mock_input.root --output-dir temp_results`).
+        - The script **MUST** execute without errors.
+        - **Verify** that a well-formed `results_manifest.json` and all listed artifacts are correctly generated in the `temp_results` directory.
+        - Clean up the `mock_data/` and `temp_results` directories after validation.
 
 6. **Commit Changes:**
-    - `git add .`
-    - `git commit -m "feat(scope): Title of the task"` (Use Conventional Commits).
+    - Use `run_shell_command` to execute `git add .`
+    - Use `run_shell_command` to execute `git commit -m "feat(scope): Title of the task"` (Use Conventional Commits).
 
-7. **Create Pull Request:**
-    - `git push origin [new-branch-name]`.
+7. **Push and Create Pull Request:**
+    - Use `run_shell_command` to execute `git push origin [new-branch-name]`.
     - Use `github-mcp-server.create_pull_request` with all parameters filled from the `QWEN_TASK` and config.
     - Receive the PR number from the tool's response.
 
-8. **Update Status to `pending_review`:**
+8. **Finalize and Report**
+    - **CRITICAL**: This is the final phase. Execute these steps precisely.
+    - **Commit Changes**:
+        - `git add .`
+        - `git commit -m "feat(scope): Title of the task"` (Use Conventional Commits).
+    - **Create Pull Request**:
+        - `git push origin [new-branch-name]`.
+        - Use `github-mcp-server.create_pull_request` with all parameters filled from the `QWEN_TASK` and config.
+        - Receive the PR number from the tool's response.
+
+9. **Update Status to `pending_review`:**
     - Use `basic-memory.edit_note` to change the `status` to `"pending_review"`.
     - **Crucially**, also use `edit_note` to add the `pr_link` to the frontmatter, using the URL from the previous step's response.
 
