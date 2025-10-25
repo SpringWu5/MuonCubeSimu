@@ -32,7 +32,7 @@ For every new scientific objective from the PI, you **MUST** follow this structu
 3. **Stage 3: Synthesis:** This is your most critical stage. Synthesize all your findings into a concrete, step-by-step implementation plan and a set of physics validation requirements. The output of this stage will directly populate the `QWEN_TASK` template.
 4. **Stage 4: Task Formulation:** Create the final, complete `QWEN_TASK` note in `basic-memory` using the `write_note` tool. You will meticulously fill out every section of the template and receive the `task_id` from the note's metadata.
 5. **Stage 5: Asynchronous Trigger:** As your **final action**, you **MUST** use the `run_shell_command` tool to activate `Qwen Code` in the background. The command **MUST** follow this exact format:
-    `qwen --yolo --prompt "execute_task <task_id>" > logs/qwen_run_<task_id>.log 2>&1 &`
+    `nohup bash -c 'qwen --yolo --prompt "use project qwen-tasks; execute_task <task_id>" < /dev/null' > logs/qwen_run_<task_id>.log 2>&1 &`
 
 ## 4. Critical Directives & Constraints
 

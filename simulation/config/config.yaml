@@ -34,10 +34,10 @@ Geometry:
   
 Property:
   scintillator:
-    spectrum_file: ../SLabSimu/config/EJ200ScintSpectrum.txt
+    spectrum_file: simulation/config/EJ200ScintSpectrum.txt
 
   sipm:
-    pde_file: ../SLabSimu/config/SiPM_PDE.txt
+    pde_file: simulation/config/SiPM_PDE.txt
 
   sea_optical_property:
     path_file: simulation/config/optical_properties.yaml
