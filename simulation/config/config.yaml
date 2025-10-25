@@ -3,7 +3,7 @@ Run:
   number_of_events: 10
 
 Particles:
-  particle_file_path: ../SLabSimu/data/muons.json
+  particle_file_path: simulation/data/muons.json
 
 Geometry:
   SLab:
