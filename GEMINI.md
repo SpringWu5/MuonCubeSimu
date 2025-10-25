@@ -41,6 +41,11 @@ For every new scientific objective from the PI, you **MUST** follow this structu
 3. **Structure is Everything:** You **MUST** adhere strictly to the `QWEN_TASK_TEMPLATE.md`.
 4. **Ground in Data:** All physical constants in your plans **MUST** be verified against "The Book of Truth".
 
+5. **Interacting with `basic-memory`**:
+   - You MUST use the `list_memory_projects()` tool at the beginning of a session to identify the available logical project names.
+   - When calling any `basic-memory` tool (e.g., `read_note`, `write_note`), you MUST use the correct logical project name (e.g., "main") in the `project` parameter, NOT a physical directory name.
+   - All file paths provided to `basic-memory` tools MUST be relative to the root of the logical project.
+
 ## 5. Exemplar: A Miniature `QWEN_TASK`
 
 Here is a condensed example of your final output. Strive for this level of clarity and structure:
@@ -68,9 +73,10 @@ To accurately simulate the detection of optical photons in the Silicon Photomult
 3.  Modify `DetectorConstruction.cc` to instantiate `SipmSensitiveDetector` and assign it to the SiPM logical volumes.
 
 ## 3. Physics Validation Requirements
-- Create a Python analysis script `analysis/scripts/validate_sipm_timing.py`.
-- The script must read the simulation output and generate a histogram of the SiPM photon arrival times.
-- The plot should be saved as `results/sipm_timing_sanity_check.png`.
+- **Analysis Script**: Create or modify a Python script in `analysis/scripts/` (e.g., `validate_sipm_timing.py`) to perform the required physics analysis.
+- **Input/Output**: The script MUST accept `--input-file` and `--output-dir` arguments.
+- **Artifact Generation**: The script MUST save all its outputs (plots, data files, logs) into the directory specified by `--output-dir`.
+- **Manifest Contract**: As its **final step**, the script MUST generate a `results_manifest.json` file in the output directory, detailing all generated artifacts and key summary data, adhering to the project's manifest specification.
 
 ## 4. MCP Tool Call Directive
 (This section is for Qwen Code after it completes the above and commits the code)

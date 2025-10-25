@@ -100,7 +100,6 @@ jobs:
 
       - name: Deploy and Run Simulation on INPAC
         id: remote_run
-        continue-on-error: true
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.INPAC_HOST }}
@@ -108,92 +107,107 @@ jobs:
           key: ${{ secrets.INPAC_SSH_PRIVATE_KEY }}
           port: ${{ secrets.INPAC_PORT }}
           script: |
-            set -euo pipefail
-            export REPO_DIR="/lustre/neutrino/wujiacheng/hephaestus-ci/MuonSLab/MuonCubeSimu/${{ github.event.issue.number }}"
+            set -euo pipefail # Ensure script fails on any error
+
+            # 1. Define a unique, ephemeral workspace directory
+            export REPO_DIR="/lustre/neutrino/wujiacheng/hephaestus-ci/MuonCubeSimu/pr_${{ github.event.issue.number }}_${{ steps.get_sha.outputs.sha }}"
             export PR_SHA="${{ steps.get_sha.outputs.sha }}"
-            export SIM_SIZE=${{ steps.get_size.outputs.size }}
+            export SIM_SIZE="${{ steps.get_size.outputs.size }}"
 
-            if [ -z "$PR_SHA" ]; then
-              echo "::error::PR_SHA is empty. Aborting."
-              exit 1
-            fi
+            # 2. Define a cleanup function and set a trap for reliable cleanup
+            cleanup() {
+              echo "--- Cleaning up ephemeral workspace: ${REPO_DIR} ---"
+              if [ -d "${REPO_DIR}" ]; then
+                rm -rf "${REPO_DIR}"
+                echo "--- Workspace cleaned successfully. ---"
+              fi
+            }
+            trap cleanup EXIT
 
-            echo "--- Using PR Head SHA: ${PR_SHA} ---" # 增加一个调试输出，方便确认
+            # 3. Create workspace and deploy code
+            echo "--- Creating ephemeral workspace: ${REPO_DIR} ---"
+            git clone https://github.com/${{ github.repository }}.git "${REPO_DIR}"
+            cd "${REPO_DIR}"
+            git checkout "${PR_SHA}"
 
-            echo "--- Deploying code to ${REPO_DIR} ---"
-            if [ -d "$REPO_DIR" ]; then
-              cd "$REPO_DIR"
-              git fetch origin
-              git reset --hard "$PR_SHA"
-            else
-              git clone https://github.com/${{ github.repository }}.git "$REPO_DIR"
-              cd "$REPO_DIR"
-              git checkout "$PR_SHA"
-            fi
-
-            echo "--- Sourcing Project Environment ---"
-            # Project-specific environment
+            # 4. Source environment and build
+            echo "--- Sourcing Project Environment & Building ---"
             set +u
             source ~mocen/hailing.env
             set -u
-
-            echo "--- Building Simulation ---"
             cd simulation
             cmake .
             make -j8
+            cd .. # Return to repo root
 
-            echo "--- Running Simulation (${SIM_SIZE}) ---"
+            # 5. Conditional Execution Logic
             if [ "$SIM_SIZE" = "small" ]; then
-              ./SLabSimu -m small_run.mac
-              echo "--- Post-Processing (small) ---"
-              python ../analysis/scripts/post_process.py \
-                --job-id "small_run_${{ github.event.issue.number }}" \
-                --status "success" \
+              # --- SMALL RUN (Synchronous) ---
+              echo "--- Running Simulation (small) ---"
+              ./simulation/SLabSimu \
+                simulation/config/config.yaml \
+                "small_run.root"
+
+              echo "--- Analyzing and Reporting Back (small) ---"
+              # Assuming a standard analysis script for small runs exists
+              python analysis/scripts/validate_energy_deposition.py \
+                --input-file "small_run.root" \
+                --output-dir "results"
+              
+              python analysis/scripts/post_process.py \
+                --manifest "results/results_manifest.json" \
+                --github-token "${{ secrets.WORKFLOW_TOKEN }}" \
+                --repo "${{ github.repository }}" \
                 --pr-number "${{ github.event.issue.number }}" \
-                --repo-owner "${{ github.repository_owner }}" \
-                --repo-name "${{ github.event.repository.name }}"
+                --commit-sha "$PR_SHA"
+
             else
-              echo "--- Creating HTCondor submission file ---"
-              cd ..
+              # --- LARGE RUN (Asynchronous via HTCondor) ---
+              echo "--- Creating HTCondor submission wrapper ---"
               mkdir -p "${REPO_DIR}/logs"
+              
+              # Wrapper script to run simulation, then analysis, then post-processing
+              cat << 'EOF' > run_and_report.sh
+            #!/bin/bash
+            set -euo pipefail
+            REPO_DIR_ABS=$(pwd)
+            
+            # Run Simulation
+            echo "Starting simulation..."
+            ./simulation/SLabSimu simulation/config/config.yaml "large_run.root"
+            
+            # Run Analysis (generates manifest)
+            echo "Simulation finished. Starting analysis..."
+            python analysis/scripts/validate_energy_deposition.py \
+              --input-file "large_run.root" \
+              --output-dir "results"
+
+            # Run Post-Processing (reads manifest and reports back)
+            echo "Analysis finished. Reporting results to GitHub..."
+            python analysis/scripts/post_process.py \
+              --manifest "results/results_manifest.json" \
+              --github-token "$1" \
+              --repo "$2" \
+              --pr-number "$3" \
+              --commit-sha "$4" \
+              --job-id "$5"
+            EOF
+              chmod +x run_and_report.sh
+
+              # HTCondor submission file
               printf '%s\n' \
                   "Universe   = vanilla" \
-                  "Executable = ${REPO_DIR}/simulation/SLabSimu" \
-                  "Arguments  = -m run.mac" \
+                  "Executable = ${REPO_DIR}/run_and_report.sh" \
+                  "Arguments  = \"${{ secrets.WORKFLOW_TOKEN }} ${{ github.repository }} ${{ github.event.issue.number }} $PR_SHA \$(ClusterId)\"" \
                   "Log        = ${REPO_DIR}/logs/job_\$(ClusterId).log" \
                   "Output     = ${REPO_DIR}/logs/job_\$(ClusterId).out" \
                   "Error      = ${REPO_DIR}/logs/job_\$(ClusterId).err" \
                   "request_cpus = 8" \
                   "should_transfer_files = NO" > job.sub
+              
               JOB_ID=$(condor_submit job.sub | grep -oP 'submitted to cluster \K\d+')
               echo "--- Submitted job to HTCondor with ID: ${JOB_ID} ---"
             fi
-
-      - name: Comment result (success)
-        if: ${{ steps.remote_run.outcome == 'success' }}
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: "✅ Simulation job finished successfully on INPAC."
-            });
-
-      - name: Comment result (failure)
-        if: ${{ steps.remote_run.outcome != 'success' }}
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: "❌ Simulation job failed on INPAC. Check workflow logs for details."
-            });
 
       - name: Fail job if remote failed
         if: ${{ steps.remote_run.outcome != 'success' }}
