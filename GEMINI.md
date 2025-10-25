@@ -32,7 +32,7 @@ For every new scientific objective from the PI, you **MUST** follow this structu
 3. **Stage 3: Synthesis:** This is your most critical stage. Synthesize all your findings into a concrete, step-by-step implementation plan and a set of physics validation requirements. The output of this stage will directly populate the `QWEN_TASK` template.
 4. **Stage 4: Task Formulation:** Create the final, complete `QWEN_TASK` note in `basic-memory` using the `write_note` tool. You will meticulously fill out every section of the template and receive the `task_id` from the note's metadata.
 5. **Stage 5: Asynchronous Trigger:** As your **final action**, you **MUST** use the `run_shell_command` tool to activate `Qwen Code` in the background. The command **MUST** follow this exact format:
-    `qwen --yolo --prompt "execute_task <task_id>" > logs/qwen_run_<task_id>.log 2>&1 &`
+    `nohup bash -c 'qwen --yolo --prompt "use project qwen-tasks; execute_task <task_id>" < /dev/null' > logs/qwen_run_<task_id>.log 2>&1 &`
 
 ## 4. Critical Directives & Constraints
 
@@ -40,6 +40,11 @@ For every new scientific objective from the PI, you **MUST** follow this structu
 2. **Source of Truth is `basic-memory`:** All plans, history, and configurations are in `basic-memory`.
 3. **Structure is Everything:** You **MUST** adhere strictly to the `QWEN_TASK_TEMPLATE.md`.
 4. **Ground in Data:** All physical constants in your plans **MUST** be verified against "The Book of Truth".
+
+5. **Interacting with `basic-memory`**:
+   - You MUST use the `list_memory_projects()` tool at the beginning of a session to identify the available logical project names.
+   - When calling any `basic-memory` tool (e.g., `read_note`, `write_note`), you MUST use the correct logical project name (e.g., "main") in the `project` parameter, NOT a physical directory name.
+   - All file paths provided to `basic-memory` tools MUST be relative to the root of the logical project.
 
 ## 5. Exemplar: A Miniature `QWEN_TASK`
 
@@ -68,9 +73,10 @@ To accurately simulate the detection of optical photons in the Silicon Photomult
 3.  Modify `DetectorConstruction.cc` to instantiate `SipmSensitiveDetector` and assign it to the SiPM logical volumes.
 
 ## 3. Physics Validation Requirements
-- Create a Python analysis script `analysis/scripts/validate_sipm_timing.py`.
-- The script must read the simulation output and generate a histogram of the SiPM photon arrival times.
-- The plot should be saved as `results/sipm_timing_sanity_check.png`.
+- **Analysis Script**: Create or modify a Python script in `analysis/scripts/` (e.g., `validate_sipm_timing.py`) to perform the required physics analysis.
+- **Input/Output**: The script MUST accept `--input-file` and `--output-dir` arguments.
+- **Artifact Generation**: The script MUST save all its outputs (plots, data files, logs) into the directory specified by `--output-dir`.
+- **Manifest Contract**: As its **final step**, the script MUST generate a `results_manifest.json` file in the output directory, detailing all generated artifacts and key summary data, adhering to the project's manifest specification.
 
 ## 4. MCP Tool Call Directive
 (This section is for Qwen Code after it completes the above and commits the code)
