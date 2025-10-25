@@ -73,15 +73,25 @@ This is your core function. You **MUST** execute these steps in order for every 
         - Clean up the `mock_data/` and `temp_results` directories after validation.
 
 6. **Commit Changes:**
-    - `git add .`
-    - `git commit -m "feat(scope): Title of the task"` (Use Conventional Commits).
+    - Use `run_shell_command` to execute `git add .`
+    - Use `run_shell_command` to execute `git commit -m "feat(scope): Title of the task"` (Use Conventional Commits).
 
-7. **Create Pull Request:**
-    - `git push origin [new-branch-name]`.
+7. **Push and Create Pull Request:**
+    - Use `run_shell_command` to execute `git push origin [new-branch-name]`.
     - Use `github-mcp-server.create_pull_request` with all parameters filled from the `QWEN_TASK` and config.
     - Receive the PR number from the tool's response.
 
-8. **Update Status to `pending_review`:**
+8. **Finalize and Report**
+    - **CRITICAL**: This is the final phase. Execute these steps precisely.
+    - **Commit Changes**:
+        - `git add .`
+        - `git commit -m "feat(scope): Title of the task"` (Use Conventional Commits).
+    - **Create Pull Request**:
+        - `git push origin [new-branch-name]`.
+        - Use `github-mcp-server.create_pull_request` with all parameters filled from the `QWEN_TASK` and config.
+        - Receive the PR number from the tool's response.
+
+9. **Update Status to `pending_review`:**
     - Use `basic-memory.edit_note` to change the `status` to `"pending_review"`.
     - **Crucially**, also use `edit_note` to add the `pr_link` to the frontmatter, using the URL from the previous step's response.
 
