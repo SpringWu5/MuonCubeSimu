@@ -124,23 +124,28 @@ jobs:
             }
             trap cleanup EXIT
 
-            # 3. Create workspace and deploy code
+            # 3. Set up environment and install gh CLI
+            echo "--- Sourcing Project Environment & Installing GitHub CLI ---"
+            set +u
+            source ~mocen/hailing.env
+            set -u
+            conda config --add channels conda-forge
+            conda install -y gh
+
+            # 4. Create workspace and deploy code
             echo "--- Creating ephemeral workspace: ${REPO_DIR} ---"
             git clone https://github.com/${{ github.repository }}.git "${REPO_DIR}"
             cd "${REPO_DIR}"
             git checkout "${PR_SHA}"
 
-            # 4. Source environment and build
-            echo "--- Sourcing Project Environment & Building ---"
-            set +u
-            source ~mocen/hailing.env
-            set -u
+            # 5. Build the simulation
+            echo "--- Building Simulation ---"
             cd simulation
             cmake .
             make -j8
             cd .. # Return to repo root
 
-            # 5. Conditional Execution Logic
+            # 6. Conditional Execution Logic
             if [ "$SIM_SIZE" = "small" ]; then
               # --- SMALL RUN (Synchronous) ---
               echo "--- Running Simulation (small) ---"
