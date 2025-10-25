@@ -40,7 +40,7 @@ Property:
     pde_file: ../SLabSimu/config/SiPM_PDE.txt
 
   sea_optical_property:
-    path_file: ../SLabSimu/config/optical_properties.yaml
+    path_file: simulation/config/optical_properties.yaml
   
   Atmosphere:
     density:  0.001205 #g / cm3
