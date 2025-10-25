@@ -64,6 +64,10 @@ This is your core function. You **MUST** execute these steps in order for every 
 
 5. **Local Validation:**
     - **Build Validation**: Run the C++ build command (e.g., `make`). It **MUST** succeed.
+    - **Python Syntax Validation**:
+        - Iterate through all `.py` files in `analysis/scripts/`.
+        - For each script, run `python -m py_compile <script_path>`.
+        - All scripts **MUST** compile without syntax errors.
     - **Analysis Validation**:
         - Create a `mock_data/` directory.
         - Generate or place a small, representative mock `.root` file there.
