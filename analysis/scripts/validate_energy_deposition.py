@@ -1,86 +1,93 @@
 #!/usr/bin/env python3
 """
-validate_energy_deposition.py
+Script to validate muon energy deposition recording in the simulation.
 
-This script reads the simulation output file (ROOT file) and extracts 
-the recorded total energy deposition per event. It prints the energy 
-deposition values to the console for validation.
+This script reads the simulation output file (ROOT format) and extracts 
+the recorded energy deposition for validation.
 """
 
-import uproot
-import numpy as np
+import argparse
 import sys
-import os
+try:
+    import ROOT
+except ImportError:
+    print("Error: ROOT Python bindings not found. Please install ROOT or set up the environment.")
+    sys.exit(1)
 
 
-def validate_energy_deposition(input_file_path):
+def validate_energy_deposition(input_file):
     """
-    Reads the simulation output file and extracts the total energy deposition per event.
+    Read the simulation output file and extract energy deposition data.
     
     Args:
-        input_file_path (str): Path to the ROOT file containing simulation output
+        input_file (str): Path to the simulation ROOT output file
+    
+    Returns:
+        list: List of energy deposition values per event
     """
+    print(f"Opening file: {input_file}")
     
-    print(f"Reading simulation output from: {input_file_path}")
+    # Open the ROOT file
+    root_file = ROOT.TFile.Open(input_file)
+    if not root_file or root_file.IsZombie():
+        print(f"Error: Could not open file {input_file}")
+        return []
     
-    # Check if the file exists
-    if not os.path.exists(input_file_path):
-        print(f"Error: Input file does not exist: {input_file_path}")
-        return
+    # Access the simulation tree
+    tree = root_file.Get("Simu")
+    if not tree:
+        print("Error: Could not find 'Simu' tree in the file")
+        root_file.Close()
+        return []
     
-    try:
-        # Open the ROOT file using uproot
-        with uproot.open(input_file_path) as file:
-            # Get the 'Simu' tree (as defined in OutputManager.cc)
-            tree = file["Simu"]
-            
-            # Check if the totalEnergyDeposition branch exists
-            if "totalEnergyDeposition" not in tree.keys():
-                print("Error: 'totalEnergyDeposition' branch not found in the tree.")
-                print(f"Available branches: {list(tree.keys())}")
-                return
-            
-            # Read the total energy deposition values
-            total_energy_deposition = tree["totalEnergyDeposition"].array()
-            
-            # Read event IDs for reference
-            event_ids = tree["eventID"].array()
-            
-            print(f"Found {len(total_energy_deposition)} events in the simulation output.")
-            print("\nEvent ID | Total Energy Deposition (GeV)")
-            print("-" * 40)
-            
-            # Print the energy deposition for each event
-            for i, (event_id, energy) in enumerate(zip(event_ids, total_energy_deposition)):
-                print(f"{int(event_id):8d} | {energy:22.6f} GeV")
-            
-            print(f"\nSummary:")
-            print(f"Total events processed: {len(total_energy_deposition)}")
-            print(f"Min energy deposition: {np.min(total_energy_deposition):.6f} GeV")
-            print(f"Max energy deposition: {np.max(total_energy_deposition):.6f} GeV")
-            print(f"Mean energy deposition: {np.mean(total_energy_deposition):.6f} GeV")
-            print(f"Std energy deposition: {np.std(total_energy_deposition):.6f} GeV")
-            
-    except Exception as e:
-        print(f"Error reading the ROOT file: {str(e)}")
-        return
+    print(f"Successfully opened tree with {tree.GetEntries()} entries")
+    
+    # List to store energy deposition values
+    energy_depositions = []
+    
+    # Process all events in the tree
+    for entry_idx in range(tree.GetEntries()):
+        tree.GetEntry(entry_idx)
+        
+        # Extract event ID and total energy deposition
+        event_id = tree.eventID
+        total_energy = tree.totalEnergyDeposition
+        
+        print(f"Event {event_id}: Total energy deposited = {total_energy:.6f} GeV")
+        
+        energy_depositions.append(total_energy)
+    
+    root_file.Close()
+    return energy_depositions
 
 
 def main():
-    """Main function to run the validation script."""
+    parser = argparse.ArgumentParser(description="Validate muon energy deposition from simulation output")
+    parser.add_argument("--input-file", required=True, help="Input ROOT file from simulation")
+    parser.add_argument("--output-file", help="Optional output file to save results summary")
     
-    # Default input file path
-    default_input_file = "output.root"
-    
-    # Check command line arguments
-    if len(sys.argv) > 1:
-        input_file = sys.argv[1]
-    else:
-        input_file = default_input_file
-        print(f"No input file specified. Looking for default file: {default_input_file}")
+    args = parser.parse_args()
     
     # Validate the energy deposition
-    validate_energy_deposition(input_file)
+    energies = validate_energy_deposition(args.input_file)
+    
+    if energies:
+        print(f"\nSummary:")
+        print(f"Total events processed: {len(energies)}")
+        print(f"Total energy deposited across all events: {sum(energies):.6f} GeV")
+        print(f"Average energy per event: {sum(energies)/len(energies):.6f} GeV" if energies else "N/A")
+        print(f"Max energy in single event: {max(energies) if energies else 0:.6f} GeV")
+        print(f"Min energy in single event: {min(energies) if energies else 0:.6f} GeV")
+        
+        # Optionally save results to a file
+        if args.output_file:
+            with open(args.output_file, 'w') as f:
+                f.write("EventID,EnergyDeposition_GeV\n")
+                for i, energy in enumerate(energies):
+                    f.write(f"{i},{energy:.8f}\n")
+            print(f"\nResults saved to {args.output_file}")
+    else:
+        print("No energy deposition data found.")
 
 
 if __name__ == "__main__":
