@@ -66,6 +66,19 @@ void EventAction::BeginOfEventAction(const G4Event *event) {
         }
     }
 
+    // Store initial momentum of primary particle in McEvent structure
+    if (event->GetNumberOfPrimaryVertex() > 0) {
+        G4PrimaryVertex* vertex = event->GetPrimaryVertex(0);
+        if (vertex && vertex->GetNumberOfParticle() > 0) {
+            G4PrimaryParticle* primary = vertex->GetPrimary(0);
+            if (primary) {
+                G4ThreeVector momentum = primary->GetMomentum();
+                OutputManager::Instance()->GetMcEventRoot()->SetEventId(fEventID);
+                OutputManager::Instance()->GetMcEventRoot()->AddInitialMomentum(momentum);
+            }
+        }
+    }
+
     OutputManager::Instance()->SetEventID(fEventID);
 }
 
