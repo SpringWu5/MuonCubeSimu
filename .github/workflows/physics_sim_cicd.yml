@@ -1,7 +1,7 @@
 name: Physics Simulation CI/CD
 
 permissions:
-  contents: write
+  contents: read
   issues: write
   pull-requests: write
 
@@ -54,6 +54,9 @@ jobs:
           echo "No valid /run-simulation command found. Stopping."
           exit 0
 
+      - name: Post Acknowledgement Comment
+        continue-on-error: true
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.COPILOT_REVIEW_TOKEN }}
           script: |
@@ -153,7 +156,7 @@ jobs:
               
               python analysis/scripts/post_process.py \
                 --manifest "results/results_manifest.json" \
-                --github-token "${{ secrets.GITHUB_TOKEN }}" \
+                --github-token "${{ secrets.WORKFLOW_TOKEN }}" \
                 --repo "${{ github.repository }}" \
                 --pr-number "${{ github.event.issue.number }}" \
                 --commit-sha "$PR_SHA"
@@ -195,7 +198,7 @@ jobs:
               printf '%s\n' \
                   "Universe   = vanilla" \
                   "Executable = ${REPO_DIR}/run_and_report.sh" \
-                  "Arguments  = \"${{ secrets.GITHUB_TOKEN }} ${{ github.repository }} ${{ github.event.issue.number }} $PR_SHA \$(ClusterId)\"" \
+                  "Arguments  = \"${{ secrets.WORKFLOW_TOKEN }} ${{ github.repository }} ${{ github.event.issue.number }} $PR_SHA \$(ClusterId)\"" \
                   "Log        = ${REPO_DIR}/logs/job_\$(ClusterId).log" \
                   "Output     = ${REPO_DIR}/logs/job_\$(ClusterId).out" \
                   "Error      = ${REPO_DIR}/logs/job_\$(ClusterId).err" \

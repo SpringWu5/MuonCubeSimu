@@ -6,7 +6,6 @@ OutputManager::OutputManager(): fOutputFile(0), fOutputTree(0), fTotalEnergyDepo
     fMuons = new Muons();
     fSLabHits = new Hits();
     fHits = new Hits();
-    fMcEventRoot = new McEventRoot();
 }
 
 
@@ -30,7 +29,6 @@ void OutputManager::Book(G4String outfile)
     fMuons->BookBranches(fOutputTree);
     fSLabHits->BookBranches(fOutputTree, "SLab");
     fHits->BookBranches(fOutputTree, "SiPM");
-    fMcEventRoot->BookBranches(fOutputTree);
 }
 
 

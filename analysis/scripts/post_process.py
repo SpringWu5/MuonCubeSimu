@@ -103,7 +103,7 @@ def main():
 
     # --- 4. Create a unique tag and create the GitHub Release ---
     tag_name = f"exp/{args.pr_number}/{args.commit_sha[:7]}"
-    release_title = f"Experimental Run for PR #{args.pr_number} ({args.commit_sha[:7]})"
+    release_title = f"Experimental Run for PR #{args.pr_number} ({args.commit_sha[:7]})")"
     release_notes = f"Full data archive for simulation run based on commit {args.commit_sha}."
 
     print(f"Creating release with tag: {tag_name}")

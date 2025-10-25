@@ -1,6 +1,5 @@
 #pragma once
 
-#include "G4ThreeVector.hh"
 #include "nlohmann/json.hpp"
 #include "vector"
 using json = nlohmann::json;
@@ -30,7 +29,6 @@ public:
         std::swap(particles_in, e.particles_in);
         std::swap(particles_out, e.particles_out);
         std::swap(particles_at_detector, e.particles_at_detector);
-        fInitialMomentum = e.fInitialMomentum;
         weight_volume = e.weight_volume;
         weight_spectrum = e.weight_spectrum;
         weight_interaction = e.weight_interaction;
@@ -51,11 +49,6 @@ public:
     float weight = 1.0;
 
     int event_id = 0;
-    
-    // Initial momentum of the primary particle
-    G4ThreeVector fInitialMomentum;
-    
-    void SetInitialMomentum(G4ThreeVector momentum) { fInitialMomentum = momentum; }
 };
 
     // json parse by https://github.com/nlohmann/json

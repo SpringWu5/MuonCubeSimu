@@ -14,7 +14,6 @@
 
 #include "Record/Muons.hh"
 #include "Record/Hits.hh"
-#include "Record/McEventRoot.hh"
 #include "Util/Singleton.hh"
 
 class OutputManager : public Singleton<OutputManager>
@@ -29,7 +28,6 @@ public:
         fMuons->Reset();
         fSLabHits->Reset();
         fHits->Reset();
-        fMcEventRoot->Reset();
     }
 
     void Clear() {
@@ -38,7 +36,6 @@ public:
         delete fMuons;
         delete fSLabHits;
         delete fHits;
-        delete fMcEventRoot;
     }
 
     void SetEventID(Int_t eID) { fEventID = eID; }
@@ -49,7 +46,6 @@ public:
     Muons* GetMuons() { return fMuons; }
     Hits* GetSLabHits() { return fSLabHits; }
     Hits* GetHits() { return fHits; }
-    McEventRoot* GetMcEventRoot() { return fMcEventRoot; }
 
 private:
     friend class Singleton<OutputManager>;
@@ -63,7 +59,6 @@ private:
     Muons*   fMuons;
     Hits*    fSLabHits;
     Hits*    fHits;
-    McEventRoot* fMcEventRoot;
 };
 
 
