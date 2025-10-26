@@ -119,8 +119,6 @@ def main():
     ]
     release_url = run_command(release_command)
     print(f"Successfully created release: {release_url}")
-    release_url = run_command(release_command)
-    print(f"Successfully created release: {release_url}")
 
     # --- 5. Generate and post the PR comment ---
     # Note: For simplicity, this version uses local paths for images.
