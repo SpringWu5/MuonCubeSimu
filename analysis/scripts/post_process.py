@@ -28,7 +28,7 @@ def run_command(command, check=True, cwd=None):
         print(f"Stderr:\n{e.stderr}", file=sys.stderr, flush=True)
         raise
 
-def create_markdown_report(manifest):
+def create_markdown_report(manifest, image_url_map):
     """Creates a markdown report from the manifest."""
     report = []
     metadata = manifest.get("run_metadata", {})
@@ -56,9 +56,10 @@ def create_markdown_report(manifest):
     if key_artifacts:
         report.append("#### Key Results")
         for art in key_artifacts:
-            # Placeholder for image URL, will be replaced after release upload
+            image_path = art.get("path")
+            image_url = image_url_map.get(image_path, image_path) # Fallback to local path
             report.append(f"##### {art.get('title', 'Untitled')}")
-            report.append(f"![{art.get('title', 'image')}]({art.get('path')})")
+            report.append(f"![{art.get('title', 'image')}]({image_url})")
             report.append(f"_{art.get('description', '')}_")
         report.append("")
     
@@ -121,9 +122,16 @@ def main():
     print(f"Successfully created release: {release_url}")
 
     # --- 5. Generate and post the PR comment ---
-    # Note: For simplicity, this version uses local paths for images.
-    # A more advanced version would parse the release_url to get asset URLs.
-    report_md = create_markdown_report(manifest)
+    # Build a map of local artifact paths to their public release URLs
+    image_url_map = {}
+    key_artifacts = [art for art in manifest.get("artifacts", []) if art.get("is_key_result")]
+    for art in key_artifacts:
+        file_name = Path(art["path"]).name
+        # Construct the public URL for the asset
+        image_url = f"https://github.com/{args.repo}/releases/download/{tag_name}/{file_name}"
+        image_url_map[art["path"]] = image_url
+
+    report_md = create_markdown_report(manifest, image_url_map)
     
     # Add a link to the release at the end of the report
     final_report_md = f"{report_md}\n\n**[View Full Results Archive in Release]({release_url})**"
