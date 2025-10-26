@@ -108,6 +108,7 @@ jobs:
           port: ${{ secrets.INPAC_PORT }}
           script: |
             set -euo pipefail # Ensure script fails on any error
+            export PATH=$HOME/bin:$PATH # Add user's bin dir to PATH for gh
 
             # 1. Define a unique, ephemeral workspace directory
             export REPO_DIR="/lustre/neutrino/wujiacheng/hephaestus-ci/MuonCubeSimu/pr_${{ github.event.issue.number }}_${{ steps.get_sha.outputs.sha }}"
