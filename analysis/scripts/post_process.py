@@ -6,22 +6,23 @@ import subprocess
 import sys
 from pathlib import Path
 
-def run_command(command, check=True):
+def run_command(command, check=True, cwd=None):
     """Executes a command and returns its output."""
-    print(f"Executing: {' '.join(command)}", flush=True)
+    print(f"Executing: {' '.join(command)} in {cwd or '.'}", flush=True)
     try:
         result = subprocess.run(
             command,
             check=check,
             capture_output=True,
-            text=True
+            text=True,
+            cwd=cwd
         )
         print(result.stdout, flush=True)
         if result.stderr:
             print(f"Stderr: {result.stderr}", file=sys.stderr, flush=True)
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        print(f"Error executing command: {' '.join(command)}", file=sys.stderr, flush=True)
+        print(f"Error executing command: {' '.join(command)} in {cwd or '.'}", file=sys.stderr, flush=True)
         print(f"Return code: {e.returncode}", file=sys.stderr, flush=True)
         print(f"Output:\n{e.stdout}", file=sys.stderr, flush=True)
         print(f"Stderr:\n{e.stderr}", file=sys.stderr, flush=True)
@@ -93,23 +94,23 @@ def main():
     results_dir = manifest_path.parent
     
     # --- 3. Package all artifacts into a zip file ---
-    zip_file_path = results_dir / "results.zip"
+    zip_file_path = "results.zip" # Relative to results_dir
     artifacts_to_zip = [art["path"] for art in manifest.get("artifacts", [])]
     # Also include the manifest itself for completeness
     artifacts_to_zip.append(manifest_path.name)
 
-    zip_command = ["zip", str(zip_file_path)] + artifacts_to_zip
-    run_command(zip_command, check=True)
+    zip_command = ["zip", zip_file_path] + artifacts_to_zip
+    run_command(zip_command, check=True, cwd=results_dir)
 
     # --- 4. Create a unique tag and create the GitHub Release ---
     tag_name = f"exp/{args.pr_number}/{args.commit_sha[:7]}"
-    release_title = f"Experimental Run for PR #{args.pr_number} ({args.commit_sha[:7]})")"
+    release_title = f"Experimental Run for PR #{args.pr_number} ({args.commit_sha[:7]})"
     release_notes = f"Full data archive for simulation run based on commit {args.commit_sha}."
 
     print(f"Creating release with tag: {tag_name}")
     # Use --generate-notes to add a list of commits since last release
     release_command = [
-        "gh", "release", "create", tag_name, str(zip_file_path),
+        "gh", "release", "create", tag_name, str(results_dir / zip_file_path),
         "--repo", args.repo,
         "--title", release_title,
         "--notes", release_notes,
