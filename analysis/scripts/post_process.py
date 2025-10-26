@@ -108,16 +108,20 @@ def main():
     release_title = f"Experimental Run for PR #{args.pr_number} ({args.commit_sha[:7]})"
     release_notes = f"Full data archive for simulation run based on commit {args.commit_sha}."
 
+    # Identify key artifacts to upload separately for direct linking
+    key_artifacts = [art for art in manifest.get("artifacts", []) if art.get("is_key_result")]
+    asset_paths = [str(results_dir / zip_file_path)] + [str(results_dir / art["path"]) for art in key_artifacts]
+
     print(f"Creating release with tag: {tag_name}")
     # Use --generate-notes to add a list of commits since last release
     release_command = [
-        "gh", "release", "create", tag_name, str(results_dir / zip_file_path),
+        "gh", "release", "create", tag_name,
         "--repo", args.repo,
         "--title", release_title,
         "--notes", release_notes,
         "--target", args.commit_sha,
         "--generate-notes"
-    ]
+    ] + asset_paths
     release_url = run_command(release_command)
     print(f"Successfully created release: {release_url}")
 
