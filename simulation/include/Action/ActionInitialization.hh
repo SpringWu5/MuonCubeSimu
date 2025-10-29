@@ -9,13 +9,11 @@
 #define ACTIONINITIALIZATION_HH
 
 #include "G4VUserActionInitialization.hh"
-#include "nlohmann/json.hpp"
-using json = nlohmann::json;
 
 class ActionInitialization : public G4VUserActionInitialization
 {
 public:
-    ActionInitialization(json& particle_list);
+    ActionInitialization();
     virtual void Build() const;
     void setPrimaryGeneratorAction(G4VUserPrimaryGeneratorAction *pga) { fPga = pga; }
     void setEventAction(G4UserEventAction *eventAction) { fEventAction = eventAction; }
@@ -24,7 +22,6 @@ public:
 private:
     bool freproduction_mode;
     bool fUsePointSource;
-    json fParticleList;
     G4VUserPrimaryGeneratorAction *fPga;
     G4UserEventAction *fEventAction;
     G4UserRunAction *fRunAction;

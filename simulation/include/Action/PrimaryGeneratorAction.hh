@@ -12,14 +12,12 @@
 #include "G4ParticleGun.hh"
 #include "G4GeneralParticleSource.hh"
 #include "G4Event.hh"
-#include "Record/McEvent.hh"
-#include "nlohmann/json.hpp"
-using json = nlohmann::json;
+#include "G4ThreeVector.hh"
 
 class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
 {
 public:
-    PrimaryGeneratorAction(json particle_list);
+    PrimaryGeneratorAction();
     virtual ~PrimaryGeneratorAction();
 
     virtual void GeneratePrimaries(G4Event *);
@@ -29,7 +27,6 @@ public:
 
 private:
     G4ParticleGun*          fParticleGun; // G4 particle gun
-    json                    fParticleList;
 };
 
 #endif

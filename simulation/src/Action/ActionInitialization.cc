@@ -18,39 +18,11 @@ void ActionInitialization::Build() const
     LogUtils::initialize_logging();
     
     // Log the particle information from the particle list
-    LogUtils::log_info("=== Particle Information ===");
-    if (!fParticleList.empty()) {
-        LogUtils::log_info("Number of particles in list: " + std::to_string(fParticleList.size()));
-        
-        // Log first few particles as examples
-        int max_examples = std::min(static_cast<int>(fParticleList.size()), 5);
-        for (int i = 0; i < max_examples; i++) {
-            json particle = fParticleList[i];
-            std::string particle_info = "Particle " + std::to_string(i) + ": ";
-            
-            // Add available particle info
-            if (particle.contains("pdgid")) {
-                particle_info += "PDG ID=" + std::to_string(particle["pdgid"].get<int>()) + ", ";
-            }
-            if (particle.contains("energy")) {
-                particle_info += "Energy=" + std::to_string(particle["energy"].get<double>()) + " MeV, ";
-            }
-            if (particle.contains("name")) {
-                particle_info += "Name=" + particle["name"].get<std::string>();
-            }
-            
-            LogUtils::log_info(particle_info);
-        }
-        
-        if (fParticleList.size() > 5) {
-            LogUtils::log_info("... and " + std::to_string(fParticleList.size() - 5) + " more particles");
-        }
-    } else {
-        LogUtils::log_info("Particle list is empty");
-    }
+    LogUtils::log_info("=== High-Energy Muon Beam Configuration ===");
+    LogUtils::log_info("Setting up muon beam generation with 10-40 GeV energy range");
     
     // Set up the actions as before
-    SetUserAction(new PrimaryGeneratorAction(fParticleList));
+    SetUserAction(new PrimaryGeneratorAction()); // No particle list needed for new beam generation
     
     RunAction* runAction = new RunAction();
     SetUserAction(runAction);
