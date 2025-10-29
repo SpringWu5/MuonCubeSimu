@@ -12,7 +12,7 @@
 // Initialize static counter
 G4int PrimaryGeneratorAction::fNextMuonIndex = 0;
 
-PrimaryGeneratorAction::PrimaryGeneratorAction(json particle_list)
+PrimaryGeneratorAction::PrimaryGeneratorAction()
     : G4VUserPrimaryGeneratorAction() {
     spdlog::info("PrimaryGeneratorAction: Initialize primary generator action for high-energy muon beam");
     fParticleGun = new G4ParticleGun(1);

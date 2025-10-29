@@ -6,9 +6,8 @@
 #include "spdlog/spdlog.h"
 #include "Util/Logger.hh"
 
-ActionInitialization::ActionInitialization(json& particle_list)
-    : fParticleList(particle_list),
-      fPga(nullptr),
+ActionInitialization::ActionInitialization()
+    : fPga(nullptr),
       fEventAction(nullptr),
       fRunAction(nullptr) {}
 

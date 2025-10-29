@@ -24,7 +24,6 @@ int main( [[maybe_unused]] int argc, [[maybe_unused]] char **argv)
     bool gui = false;
     const char *config = "../SLabSimu/config/config.yaml";
     const char *output = "output.root";
-    json particle_list;
     int n_events = 1;
     if (argc==2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help")) {
         spdlog::info("Usage: SLabSimu config.yaml output.root ");
