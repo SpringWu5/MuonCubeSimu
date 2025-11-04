@@ -169,30 +169,43 @@ jobs:
               
               # Wrapper script to run simulation, then analysis, then post-processing
               cat << 'EOF' > run_and_report.sh
-            #!/bin/bash
-            set -euo pipefail
-            REPO_DIR_ABS=$(pwd)
-            
-            # Run Simulation
-            echo "Starting simulation..."
-            ./simulation/SLabSimu
-            
-            # Run Analysis (generates manifest)
-            echo "Simulation finished. Starting analysis..."
-            python analysis/scripts/validate_energy_deposition.py \
-              --input-file "large_run.root" \
-              --output-dir "results"
+#!/bin/bash
+set -euo pipefail
+REPO_DIR_ABS=$(pwd)
 
-            # Run Post-Processing (reads manifest and reports back)
-            echo "Analysis finished. Reporting results to GitHub..."
-            python analysis/scripts/post_process.py \
-              --manifest "results/results_manifest.json" \
-              --github-token "$1" \
-              --repo "$2" \
-              --pr-number "$3" \
-              --commit-sha "$4" \
-              --job-id "$5"
-            EOF
+# Run Simulation
+echo "Starting simulation..."
+./simulation/SLabSimu
+
+# Run Analysis (generates manifest)
+echo "Simulation finished. Starting analysis..."
+python analysis/scripts/validate_energy_deposition.py \
+  --input-file "large_run.root" \
+  --output-dir "results"
+
+# Archive Primary Data
+echo "Creating data archive..."
+zip MuonCubeSimu_output_${PR_SHA}.zip large_run.root
+
+# Create GitHub Release
+echo "Creating GitHub release..."
+gh release create "v${PR_SHA}" \
+    --repo "$2" \
+    --title "Data Release for ${PR_SHA}" \
+    --notes "Automated data release for PR #${3}, Commit: ${PR_SHA}" \
+    "MuonCubeSimu_output_${PR_SHA}.zip#Simulation Output Data"
+
+# Run Post-Processing (reads manifest and reports back)
+echo "Analysis and release finished. Reporting results to GitHub..."
+python analysis/scripts/post_process.py \
+  --manifest "results/results_manifest.json" \
+  --github-token "$1" \
+  --repo "$2" \
+  --pr-number "$3" \
+  --commit-sha "$4" \
+  --job-id "$5" \
+  --release-url "https://github.com/$2/releases/tag/v${PR_SHA}"
+EOF
               chmod +x run_and_report.sh
 
               # HTCondor submission file
