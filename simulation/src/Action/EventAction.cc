@@ -12,6 +12,9 @@
 #include "Action/EventAction.hh"
 #include "Action/SteppingAction.hh"
 #include "Util/Logger.hh"
+#include "G4ParticleDefinition.hh"
+#include "G4ParticleTable.hh"
+#include <set>
 
 EventAction::EventAction() : fEventID(-1), fTotalEnergyDeposition(0.0) {}
 

@@ -9,10 +9,12 @@
 #include "G4SystemOfUnits.hh"
 #include "spdlog/spdlog.h"
 #include "Util/Logger.hh"
+#include "G4ParticleDefinition.hh"
 #include <fstream>
 #include <iomanip>
 #include <ctime>
 #include <vector>
+#include <set>
 
 // Storage for photon statistics across events
 namespace {
@@ -109,6 +111,13 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
             std::map<std::string, int> emptyMap; // No need for generated particles
             LogUtils::log_event_summary(currentEventID, incidentParticles, 
                                       cerenkovCount, scintillationCount);
+            
+            // Add the collected secondary particle PDG codes to the OutputManager
+            if (!secondaryParticlePDGCodes.empty()) {
+                // Convert set to vector to pass to OutputManager
+                std::vector<Int_t> pdg_vector(secondaryParticlePDGCodes.begin(), secondaryParticlePDGCodes.end());
+                OutputManager::Instance()->SetSecondaryParticlePDG(pdg_vector);
+            }
         }
         
         // Reset counters
@@ -116,6 +125,7 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
         scintillationCount = 0;
         currentEventID = eventID;
         particleCount.clear();
+        secondaryParticlePDGCodes.clear();  // Clear the secondary particle collection for the new event
         
         // Reset statistics for the new event
         LogUtils::reset_detection_statistics();
@@ -197,6 +207,10 @@ void SteppingAction::UserSteppingAction(const G4Step* step)
                     } else {
                         particleCount[trackName]++;
                     }
+                    
+                    // Add the PDG code to our collection for this event
+                    G4int pdgCode = particleDef->GetPDGEncoding();
+                    secondaryParticlePDGCodes.insert(pdgCode);
                     
                     // If this is a slab, record it as a generated particle
                     if (slabID >= 0) {

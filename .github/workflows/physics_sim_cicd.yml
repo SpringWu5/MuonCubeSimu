@@ -145,14 +145,18 @@ jobs:
             if [ "$SIM_SIZE" = "small" ]; then
               # --- SMALL RUN (Synchronous) ---
               echo "--- Running Simulation (small) ---"
-              ./simulation/SLabSimu \
-                simulation/config/config.yaml \
-                "small_run.root"
+              ./simulation/SLabSimu
+
+              # Determine the output filename from the config
+              OUTPUT_FILE=$(grep -A 1 "filename:" simulation/config/config.yaml | grep -v "filename:" | xargs)
+              if [ -z "$OUTPUT_FILE" ]; then
+                  OUTPUT_FILE="output.root"  # default fallback
+              fi
 
               echo "--- Analyzing and Reporting Back (small) ---"
               # Use the new standard validation script for consistency
               python analysis/scripts/standard_validation.py \
-                --input-file "small_run.root" \
+                --input-file "$OUTPUT_FILE" \
                 --output-dir "results"
               
               python analysis/scripts/post_process.py \
@@ -164,54 +168,13 @@ jobs:
 
             else
               # --- LARGE RUN (Asynchronous via HTCondor) ---
-              echo "--- Creating HTCondor submission wrapper ---"
+              echo "--- Creating HTCondor submission ---"
               mkdir -p "${REPO_DIR}/logs"
               
-              # Wrapper script to run simulation, then analysis, then post-processing
-              cat << 'EOF' > run_and_report.sh
-#!/bin/bash
-set -euo pipefail
-REPO_DIR_ABS=$(pwd)
-
-# Run Simulation
-echo "Starting simulation..."
-./simulation/SLabSimu simulation/config/config.yaml large_run.root
-
-# Run Basic Validation
-echo "Simulation finished. Starting validation..."
-python analysis/scripts/standard_validation.py \
-  --input-file "large_run.root" \
-  --output-dir "results"
-
-# Archive Primary Data
-echo "Creating data archive..."
-zip MuonCubeSimu_output_${PR_SHA}.zip large_run.root
-
-# Create GitHub Release
-echo "Creating GitHub release..."
-gh release create "v${PR_SHA}" \
-    --repo "$2" \
-    --title "Data Release for ${PR_SHA}" \
-    --notes "Automated data release for PR #${3}, Commit: ${PR_SHA}" \
-    "MuonCubeSimu_output_${PR_SHA}.zip#Simulation Output Data"
-
-# Run Post-Processing (reads manifest and reports back)
-echo "Validation and release finished. Reporting results to GitHub..."
-python analysis/scripts/post_process.py \
-  --manifest "results/results_manifest.json" \
-  --github-token "$1" \
-  --repo "$2" \
-  --pr-number "$3" \
-  --commit-sha "$4" \
-  --job-id "$5" \
-  --release-url "https://github.com/$2/releases/tag/v${PR_SHA}"
-EOF
-              chmod +x run_and_report.sh
-
               # HTCondor submission file
               printf '%s\n' \
                   "Universe   = vanilla" \
-                  "Executable = ${REPO_DIR}/run_and_report.sh" \
+                  "Executable = ${REPO_DIR}/analysis/scripts/htcondor_run.sh" \
                   "Arguments  = \"${{ secrets.GITHUB_TOKEN }} ${{ github.repository }} ${{ github.event.issue.number }} $PR_SHA \$(ClusterId)\"" \
                   "Log        = ${REPO_DIR}/logs/job_\$(ClusterId).log" \
                   "Output     = ${REPO_DIR}/logs/job_\$(ClusterId).out" \

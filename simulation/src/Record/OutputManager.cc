@@ -36,7 +36,7 @@ void OutputManager::LoadDataContract() {
             std::string description = value["description"];
             
             // For now, we'll store this information for reference
-            // In a full implementation, we would create branches based on this
+            // In the full implementation, we would create branches based on this
             branch_info_[key] = {type, description};
         }
         
@@ -64,16 +64,24 @@ void OutputManager::Book(G4String outfile)
     //info about event statistics
     fOutputTree = new TTree("events", "Simulation Events Tree"); // Changed from "Simu" to "events"
     
-    // Create branches based on the data contract
-    // For now, using the original hardcoded branches for compatibility
-    // In a full implementation, these would be created dynamically from the data contract
-    fOutputTree->Branch("eventID", &fEventID, "eventID/I");
-    fOutputTree->Branch("totalEnergyDeposition", &fTotalEnergyDeposition, "totalEnergyDeposition/F");
+    // Create branches dynamically based on the data contract
+    for (const auto& [branch_name, branch_info] : branch_info_) {
+        if (branch_name == "event_id") {
+            fOutputTree->Branch("eventID", &fEventID, "eventID/I");
+        } else if (branch_name == "total_energy_deposition") {
+            fOutputTree->Branch("totalEnergyDeposition", &fTotalEnergyDeposition, "totalEnergyDeposition/F");
+        } else if (branch_name == "secondary_particle_pdg") {
+            // Special handling for secondary particles - this will be a vector branch
+            fOutputTree->Branch("secondaryParticlePDG", &fSecondaryParticlePDG);
+        } else {
+            // For other branches, we'll continue to use existing hardcoded branches
+            // since the OutputManager doesn't have all the necessary member variables
+            G4cout << "OutputManager: Found branch '" << branch_name 
+                   << "' with type '" << branch_info.type << "' (using existing implementation)" << G4endl;
+        }
+    }
     
-    // For a complete implementation, we would iterate through branch_info_ and create branches
-    // based on the types defined in the data contract
-    
-    // For now, keep the existing branch structure for compatibility with existing code
+    // Keep the existing branch structure for compatibility with existing code
     fMuons->BookBranches(fOutputTree);
     fSLabHits->BookBranches(fOutputTree, "SLab");
     fHits->BookBranches(fOutputTree, "SiPM");

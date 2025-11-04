@@ -35,6 +35,7 @@ public:
         fMuons->Reset();
         fSLabHits->Reset();
         fHits->Reset();
+        ClearSecondaryParticlePDG();  // Clear secondary particles for next event
     }
 
     void Clear() {
@@ -47,6 +48,18 @@ public:
 
     void SetEventID(Int_t eID) { fEventID = eID; }
     void SetTotalEnergyDeposition(Float_t energy) { fTotalEnergyDeposition = energy; }
+    void SetSecondaryParticlePDG(std::vector<Int_t> pdg_codes) { fSecondaryParticlePDG = pdg_codes; }
+    std::vector<Int_t> GetSecondaryParticlePDG() { return fSecondaryParticlePDG; }
+    
+    // Add method to add a single secondary particle PDG code
+    void AddSecondaryParticlePDG(Int_t pdg_code) { 
+        fSecondaryParticlePDG.push_back(pdg_code); 
+    }
+    
+    // Add method to clear secondary particle PDG codes for a new event
+    void ClearSecondaryParticlePDG() {
+        fSecondaryParticlePDG.clear();
+    }
 
     Int_t GetEventID() { return fEventID; }
     Float_t GetTotalEnergyDeposition() { return fTotalEnergyDeposition; }
@@ -67,6 +80,7 @@ private:
     Muons*   fMuons;
     Hits*    fSLabHits;
     Hits*    fHits;
+    std::vector<Int_t> fSecondaryParticlePDG;  // Added for secondary particle tracking
     
     // Map to store branch information loaded from data contract
     std::map<std::string, BranchInfo> branch_info_;

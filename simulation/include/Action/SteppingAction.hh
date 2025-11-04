@@ -16,10 +16,10 @@ class SteppingAction : public G4UserSteppingAction
     
     virtual void UserSteppingAction(const G4Step*);
     
-    // Êä³ö¹â×ÓÍ³¼ÆÐÅÏ¢
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í³ï¿½ï¿½ï¿½ï¿½Ï¢
     void OutputPhotonStatistics(G4int eventID, G4int cerCount, G4int scintCount);
     
-    // Êä³ö×îÖÕÍ³¼ÆÐÅÏ¢
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í³ï¿½ï¿½ï¿½ï¿½Ï¢
     void OutputFinalStatistics();
     
     // Get particle statistics
@@ -28,13 +28,16 @@ class SteppingAction : public G4UserSteppingAction
   private:
     EventAction* fEventAction;
     
-    // ¼ÆÊýÆ÷
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     G4int cerenkovCount;
     G4int scintillationCount;
     G4int currentEventID;
     
     // Particle counting map
     std::map<G4String, G4int> particleCount;
+    
+    // Secondary particle PDG codes (for the current event)
+    std::set<G4int> secondaryParticlePDGCodes;
 };
 
 #endif
