@@ -171,7 +171,7 @@ int main(int argc, char **argv)
     LogUtils::initialize_logging();
     
     // Hardcode config file path - zero-argument execution
-    const char *config = "../SLabSimu/config/config.yaml";
+    const char *config = "../config/config.yaml";
     const char *output = "output.root";  // Default, may be overridden by config
     int n_events = 1;
     
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
     }
 
     // Validate config against schema
-    if (!validate_config_against_schema(config, "../SLabSimu/config/config_schema.json")) {
+    if (!validate_config_against_schema(config, "../config/config_schema.json")) {
         spdlog::error("Configuration validation failed. Exiting.");
         return 1;
     }
@@ -251,7 +251,7 @@ int main(int argc, char **argv)
         G4UIExecutive* ui = new G4UIExecutive(argc, argv);
 
         // Execute the visualization macro
-        UImanager->ApplyCommand("/control/execute ../SLabSimu/config/vis.mac"); 
+        UImanager->ApplyCommand("/control/execute ../config/vis.mac"); 
         ui->SessionStart();
         OutputManager::Instance()->Save();
         delete ui;

@@ -18,7 +18,7 @@ OutputManager::OutputManager(): fOutputFile(0), fOutputTree(0), fTotalEnergyDepo
 void OutputManager::LoadDataContract() {
     try {
         // Attempt to load the data contract file
-        std::ifstream file("../SLabSimu/config/data_contract.json");
+        std::ifstream file("../config/data_contract.json");
         if (!file.is_open()) {
             G4cout << "OutputManager: Warning - Could not open data contract file" << G4endl;
             return;

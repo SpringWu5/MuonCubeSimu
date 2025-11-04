@@ -18,7 +18,7 @@
 
 
 
-SLabBuilder::SLabBuilder(const char* config_path="../SLabSimu/config/config.yaml")
+SLabBuilder::SLabBuilder(const char* config_path="../config/config.yaml")
 {
     logger = create_logger("SLabBuilder");
     MaterialManager::Instance()->BuildEverything(config_path);

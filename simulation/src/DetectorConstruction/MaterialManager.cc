@@ -5,6 +5,7 @@
 #include "G4NistManager.hh"
 #include <sstream>
 #include <string>
+#include <filesystem>
 
 using std::string;
 using std::vector;
@@ -12,6 +13,7 @@ using std::vector;
 bool MaterialManager::BuildEverything(const G4String &fileYAML)
 {
     logger = create_logger("MaterialManager");
+    fConfigPath = fileYAML;  // Store the config path to resolve relative paths
     rootNode = YAML::LoadFile(fileYAML);
     try {
         LoadYAML();
@@ -52,10 +54,17 @@ void MaterialManager::LoadYAML()
     fSLabGeometry.numberOfSlabs = node["Layout"]["number_of_slabs"].as<int>();
     fSLabGeometry.slabOffsets = node["Layout"]["slab_offsets"].as<std::vector<double>>();
 
+    // Extract config file directory to resolve relative paths
+    std::filesystem::path configPath(fConfigPath);
+    std::filesystem::path configDir = configPath.parent_path();
+
     // Load sea optical properties
     string pathFile = rootNode["Property"]["sea_optical_property"]["path_file"].as<string>();
     logger->debug("Reading config YAML file: optical properties");
-    node = YAML::LoadFile(pathFile);
+    
+    // Resolve path relative to config file directory
+    std::filesystem::path fullPath = configDir / pathFile;
+    node = YAML::LoadFile(fullPath.string());
     fSeaOpticalProperty.energy = node["energy"].as<vector<double>>();
     fSeaOpticalProperty.num = fSeaOpticalProperty.energy.size();
     fSeaOpticalProperty.refracIdxPhase = node["refractive_index_phase"].as<vector<double>>();
@@ -291,7 +300,14 @@ G4MaterialPropertiesTable* MaterialManager::SetOpticalPropertiesOfPS()
 	G4double pWavelength;
 	G4double pSEff;
     string pathFile = rootNode["Property"]["scintillator"]["spectrum_file"].as<string>();
-	ReadEJ200.open(pathFile.c_str());
+    
+    // Extract config file directory to resolve relative paths
+    std::filesystem::path configPath(fConfigPath);
+    std::filesystem::path configDir = configPath.parent_path();
+    
+    // Resolve path relative to config file directory
+    std::filesystem::path fullPath = configDir / pathFile;
+	ReadEJ200.open(fullPath.string().c_str());
 	if(ReadEJ200.is_open()){
     while(!ReadEJ200.eof()){
         ReadEJ200 >> pWavelength >> pSEff;

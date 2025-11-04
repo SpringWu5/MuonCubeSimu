@@ -45,13 +45,13 @@ output:
 
 property:
   scintillator:
-    spectrum_file: simulation/config/EJ200ScintSpectrum.txt
+    spectrum_file: EJ200ScintSpectrum.txt
 
   sipm:
-    pde_file: simulation/config/SiPM_PDE.txt
+    pde_file: SiPM_PDE.txt
 
   sea_optical_property:
-    path_file: simulation/config/optical_properties.yaml
+    path_file: optical_properties.yaml
   
   atmosphere:
     density:  0.001205 #g / cm3

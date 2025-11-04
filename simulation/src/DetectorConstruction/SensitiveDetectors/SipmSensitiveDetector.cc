@@ -16,6 +16,7 @@
 #include "G4SystemOfUnits.hh"
 #include "g4root.hh"
 #include "spdlog/spdlog.h"
+#include <filesystem>
 
 using std::vector;
 using std::string;
@@ -36,13 +37,20 @@ void SipmSensitiveDetector::LoadSipmPhotonDetectionEfficiency()
     std::ifstream sipm_pde_file;
     auto config_node = MaterialManager::Instance()->getRootNode();
     string pde_path = config_node["Property"]["sipm"]["pde_file"].as<string>();
-    sipm_pde_file.open(pde_path);
+    
+    // Resolve path relative to config file directory
+    G4String configPath = MaterialManager::Instance()->getConfigPath();
+    std::filesystem::path configDirPath(configPath);
+    std::filesystem::path configDir = configDirPath.parent_path();
+    std::filesystem::path fullPath = configDir / pde_path;
+    
+    sipm_pde_file.open(fullPath.string());
     if (!sipm_pde_file.is_open())
     {
-        spdlog::error("Failed to open SiPM PDE file: {:s}", pde_path);
+        spdlog::error("Failed to open SiPM PDE file: {:s}", fullPath.string());
         throw;
     } else {
-        spdlog::info("SiPM PDE file opened: {:s}", pde_path);
+        spdlog::info("SiPM PDE file opened: {:s}", fullPath.string());
         double wl, eff;
         while (sipm_pde_file >> wl >> eff)
         {

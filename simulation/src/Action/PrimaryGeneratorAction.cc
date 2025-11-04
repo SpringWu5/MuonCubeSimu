@@ -21,7 +21,7 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
     // Configuration should be passed from the main function
     // For now, we'll load it directly like other modules do
     try {
-        fConfig = YAML::LoadFile("simulation/config/config.yaml");
+        fConfig = YAML::LoadFile("../config/config.yaml");
     } catch (const YAML::Exception& e) {
         spdlog::error("Could not load config file: {}", e.what());
         fUseParticleGun = false;
