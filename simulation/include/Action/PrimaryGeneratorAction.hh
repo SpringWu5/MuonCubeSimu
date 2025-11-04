@@ -13,6 +13,7 @@
 #include "G4GeneralParticleSource.hh"
 #include "G4Event.hh"
 #include "G4ThreeVector.hh"
+#include "yaml-cpp/yaml.h"
 
 class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
 {
@@ -27,6 +28,12 @@ public:
 
 private:
     G4ParticleGun*          fParticleGun; // G4 particle gun
+    YAML::Node              fConfig;      // Configuration node
+    bool                    fUseParticleGun; // Flag to use configurable particle gun
+    std::string             fParticleType;
+    G4double                fParticleEnergy;
+    G4ThreeVector           fParticlePosition;
+    G4ThreeVector           fParticleDirection;
 };
 
 #endif

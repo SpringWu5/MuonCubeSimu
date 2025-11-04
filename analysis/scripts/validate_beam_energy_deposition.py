@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Analysis script to validate the energy deposition spectrum of high-energy muon beam (10-40 GeV).
+Analysis script to validate the energy deposition spectrum for mono-energetic muon beam.
 This script reads the simulation output file and generates a histogram of energy deposition.
+According to the Data Contract: TTree 'Simu', branch 'totalEnergyDeposition'.
 """
 
 import argparse
@@ -15,7 +16,7 @@ import uproot
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Validate energy deposition of high-energy muon beam")
+    parser = argparse.ArgumentParser(description="Validate energy deposition of mono-energetic muon beam")
     parser.add_argument("--input-file", required=True, help="Path to the simulation's ROOT output file")
     parser.add_argument("--output-dir", required=True, help="Directory to save all outputs (plots, data files, logs)")
     
@@ -26,19 +27,27 @@ def main():
     
     # Read the ROOT file using uproot
     with uproot.open(args.input_file) as file:
-        # Extract the 'events' TTree (assuming it contains 'totalEdep' branch)
-        events_tree = file["events"]
+        # Extract the 'Simu' TTree (as per Data Contract)
+        simu_tree = file["Simu"]
         
-        # Extract the 'totalEdep' branch into a numpy array
-        total_edep = events_tree["totalEdep"].array(library="np")
+        # Extract the 'totalEnergyDeposition' branch into a numpy array (as per Data Contract)
+        total_edep = simu_tree["totalEnergyDeposition"].array(library="np")
     
-    # Create histogram of the totalEdep data
+    # Create histogram of the total energy deposition data
     plt.figure(figsize=(10, 7))
     plt.hist(total_edep, bins=50, edgecolor='black', alpha=0.7)
-    plt.title("Energy Deposition of 10-40 GeV Muons")
-    plt.xlabel("Energy Deposited [MeV]")
+    plt.title("Energy Deposition of Mono-Energetic Muon Beam (150 MeV)")
+    plt.xlabel("Total Energy Deposited [MeV]")
     plt.ylabel("Counts")
     plt.grid(True, linestyle='--', alpha=0.6)
+    
+    # Add a text box with statistics
+    mean_val = np.mean(total_edep)
+    std_val = np.std(total_edep)
+    textstr = f'Mean: {mean_val:.2f} MeV\nStd: {std_val:.2f} MeV'
+    props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+    plt.text(0.7, 0.95, textstr, transform=plt.gca().transAxes, fontsize=10,
+             verticalalignment='top', bbox=props)
     
     # Save the plot to a file named energy_deposition_spectrum.png inside the output directory
     plot_path = os.path.join(args.output_dir, "energy_deposition_spectrum.png")
@@ -46,8 +55,8 @@ def main():
     plt.close()
     
     # Calculate summary data
-    mean_edep = float(np.mean(total_edep))
-    std_dev_edep = float(np.std(total_edep))
+    mean_edep = float(mean_val)
+    std_dev_edep = float(std_val)
     
     # Generate results_manifest.json as final step
     manifest = {
