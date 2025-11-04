@@ -1,0 +1,245 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "MuonCube Simulation Configuration",
+  "description": "Configuration schema for the MuonCube simulation parameters",
+  "properties": {
+    "particle_gun": {
+      "type": "object",
+      "properties": {
+        "particle_type": {
+          "type": "string",
+          "enum": ["mu-", "mu+", "gamma", "e-", "e+", "pi+"],
+          "description": "Type of primary particle to simulate"
+        },
+        "energy_distribution": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["fixed", "uniform", "gaussian", "exponential", "custom"],
+              "description": "Type of energy distribution"
+            },
+            "params": {
+              "type": "object",
+              "properties": {
+                "mean": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Mean energy in MeV for gaussian distribution"
+                },
+                "min": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Minimum energy in MeV for uniform distribution"
+                },
+                "max": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Maximum energy in MeV for uniform distribution"
+                },
+                "sigma": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Sigma for gaussian distribution"
+                }
+              },
+              "required": []
+            }
+          },
+          "required": ["type"]
+        },
+        "direction_distribution": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["fixed", "uniform", "cosine"],
+              "description": "Type of direction distribution"
+            },
+            "params": {
+              "type": "object",
+              "properties": {
+                "theta_min": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 180,
+                  "description": "Minimum polar angle in degrees"
+                },
+                "theta_max": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 180,
+                  "description": "Maximum polar angle in degrees"
+                },
+                "phi_min": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 360,
+                  "description": "Minimum azimuthal angle in degrees"
+                },
+                "phi_max": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 360,
+                  "description": "Maximum azimuthal angle in degrees"
+                },
+                "dir_x": {
+                  "type": "number",
+                  "description": "Fixed x-component of direction vector"
+                },
+                "dir_y": {
+                  "type": "number",
+                  "description": "Fixed y-component of direction vector"
+                },
+                "dir_z": {
+                  "type": "number",
+                  "description": "Fixed z-component of direction vector"
+                }
+              },
+              "required": []
+            }
+          },
+          "required": ["type"]
+        },
+        "position_distribution": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["fixed", "uniform", "gaussian"],
+              "description": "Type of position distribution"
+            },
+            "params": {
+              "type": "object",
+              "properties": {
+                "x_min": {
+                  "type": "number",
+                  "description": "Minimum x position in mm"
+                },
+                "x_max": {
+                  "type": "number",
+                  "description": "Maximum x position in mm"
+                },
+                "y_min": {
+                  "type": "number",
+                  "description": "Minimum y position in mm"
+                },
+                "y_max": {
+                  "type": "number",
+                  "description": "Maximum y position in mm"
+                },
+                "z_min": {
+                  "type": "number",
+                  "description": "Minimum z position in mm"
+                },
+                "z_max": {
+                  "type": "number",
+                  "description": "Maximum z position in mm"
+                },
+                "pos_x": {
+                  "type": "number",
+                  "description": "Fixed x position in mm"
+                },
+                "pos_y": {
+                  "type": "number",
+                  "description": "Fixed y position in mm"
+                },
+                "pos_z": {
+                  "type": "number",
+                  "description": "Fixed z position in mm"
+                }
+              },
+              "required": []
+            }
+          },
+          "required": ["type"]
+        }
+      },
+      "required": ["particle_type", "energy_distribution", "direction_distribution", "position_distribution"]
+    },
+    "detector": {
+      "type": "object",
+      "properties": {
+        "geometry": {
+          "type": "object",
+          "properties": {
+            "slab_dimensions": {
+              "type": "object",
+              "properties": {
+                "width": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Width of each slab in mm"
+                },
+                "height": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Height of each slab in mm"
+                },
+                "thickness": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Thickness of each slab in mm"
+                }
+              },
+              "required": ["width", "height", "thickness"]
+            },
+            "slab_positions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "description": "x position of slab center in mm"
+                  },
+                  "y": {
+                    "type": "number",
+                    "description": "y position of slab center in mm"
+                  },
+                  "z": {
+                    "type": "number",
+                    "description": "z position of slab center in mm"
+                  }
+                },
+                "required": ["x", "y", "z"]
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          },
+          "required": ["slab_dimensions", "slab_positions"]
+        }
+      },
+      "required": ["geometry"]
+    },
+    "physics": {
+      "type": "object",
+      "properties": {
+        "physics_list": {
+          "type": "string",
+          "enum": ["FTFP_BERT", "QGSP_BERT", "FTFP_BERT_HP"],
+          "description": "GEANT4 physics list to use"
+        }
+      },
+      "required": ["physics_list"]
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "filename": {
+          "type": "string",
+          "description": "Name of the output ROOT file"
+        },
+        "max_events": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of events to simulate"
+        }
+      },
+      "required": ["filename", "max_events"]
+    }
+  },
+  "required": ["particle_gun", "detector", "physics", "output"]
+}

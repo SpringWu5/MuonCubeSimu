@@ -1,0 +1,82 @@
+{
+  "event_id": {
+    "type": "int",
+    "description": "Unique identifier for each simulated event"
+  },
+  "primary_particle_pdg": {
+    "type": "int",
+    "description": "PDG code of the primary particle"
+  },
+  "primary_particle_ke": {
+    "type": "float",
+    "description": "Initial kinetic energy of the primary particle in MeV"
+  },
+  "primary_particle_px": {
+    "type": "float",
+    "description": "Initial x-component of the primary particle momentum vector"
+  },
+  "primary_particle_py": {
+    "type": "float",
+    "description": "Initial y-component of the primary particle momentum vector"
+  },
+  "primary_particle_pz": {
+    "type": "float",
+    "description": "Initial z-component of the primary particle momentum vector"
+  },
+  "primary_vertex_x": {
+    "type": "float",
+    "description": "x-coordinate of the primary particle's starting position in mm"
+  },
+  "primary_vertex_y": {
+    "type": "float",
+    "description": "y-coordinate of the primary particle's starting position in mm"
+  },
+  "primary_vertex_z": {
+    "type": "float",
+    "description": "z-coordinate of the primary particle's starting position in mm"
+  },
+  "total_energy_deposition": {
+    "type": "float",
+    "description": "Total energy deposited in all scintillator slabs in MeV"
+  },
+  "slab1_energy": {
+    "type": "float",
+    "description": "Energy deposited in the first scintillator slab in MeV"
+  },
+  "slab2_energy": {
+    "type": "float",
+    "description": "Energy deposited in the second scintillator slab in MeV"
+  },
+  "slab3_energy": {
+    "type": "float",
+    "description": "Energy deposited in the third scintillator slab in MeV"
+  },
+  "slab4_energy": {
+    "type": "float",
+    "description": "Energy deposited in the fourth scintillator slab in MeV"
+  },
+  "hit_count": {
+    "type": "int",
+    "description": "Total number of detector hits in all slabs"
+  },
+  "hit_position_x": {
+    "type": "array<float>",
+    "description": "Array of x-coordinates of detector hits in mm"
+  },
+  "hit_position_y": {
+    "type": "array<float>",
+    "description": "Array of y-coordinates of detector hits in mm"
+  },
+  "hit_position_z": {
+    "type": "array<float>",
+    "description": "Array of z-coordinates of detector hits in mm"
+  },
+  "hit_energy": {
+    "type": "array<float>",
+    "description": "Array of energy depositions for each hit in MeV"
+  },
+  "hit_time": {
+    "type": "array<float>",
+    "description": "Array of time of each hit in ns"
+  }
+}

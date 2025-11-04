@@ -11,10 +11,17 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "G4String.hh"
+#include <map>
+#include <string>
 
 #include "Record/Muons.hh"
 #include "Record/Hits.hh"
 #include "Util/Singleton.hh"
+
+struct BranchInfo {
+    std::string type;
+    std::string description;
+};
 
 class OutputManager : public Singleton<OutputManager>
 {
@@ -50,6 +57,7 @@ public:
 private:
     friend class Singleton<OutputManager>;
     OutputManager();
+    void LoadDataContract();
 
     TFile*   fOutputFile;
     TTree*   fOutputTree;
@@ -59,6 +67,9 @@ private:
     Muons*   fMuons;
     Hits*    fSLabHits;
     Hits*    fHits;
+    
+    // Map to store branch information loaded from data contract
+    std::map<std::string, BranchInfo> branch_info_;
 };
 
 

@@ -7,6 +7,8 @@
 #include "yaml-cpp/yaml.h"
 #include "nlohmann/json.hpp"
 #include "Util/Logger.hh"
+#include <fstream>
+#include <streambuf>
 
 #include "DetectorConstruction/SLabBuilder.hh"
 #include "PhysicsList/PhysicsList.hh"
@@ -16,9 +18,42 @@
 using json = nlohmann::json;
 using std::string;
 
+// Function to validate config against schema (simplified implementation)
+bool validate_config_against_schema(const std::string& config_path, const std::string& schema_path) {
+    try {
+        // Load the configuration
+        YAML::Node config = YAML::LoadFile(config_path);
+        
+        // Check for required top-level keys as defined in the schema
+        if (!config["particle_gun"]) {
+            spdlog::error("Configuration missing 'particle_gun' section");
+            return false;
+        }
+        if (!config["detector"]) {
+            spdlog::error("Configuration missing 'detector' section");
+            return false;
+        }
+        if (!config["physics"]) {
+            spdlog::error("Configuration missing 'physics' section");
+            return false;
+        }
+        if (!config["output"]) {
+            spdlog::error("Configuration missing 'output' section");
+            return false;
+        }
+        
+        // Additional checks can be added here based on the schema
+        spdlog::info("Configuration validation passed");
+        return true;
+    } catch (const std::exception& e) {
+        spdlog::error("Configuration validation failed: {}", e.what());
+        return false;
+    }
+}
+
 int main( [[maybe_unused]] int argc, [[maybe_unused]] char **argv)
 {
-    // ��ʼ����־ϵͳ
+    // Initialize logging system
     LogUtils::initialize_logging();
     
     bool gui = false;
@@ -35,6 +70,12 @@ int main( [[maybe_unused]] int argc, [[maybe_unused]] char **argv)
         spdlog::info("Running in batch mode");
         config = argv[1];
         output = argc>2 ? argv[2] : output;
+    }
+
+    // Validate config against schema
+    if (!validate_config_against_schema(config, "../SLabSimu/config/config_schema.json")) {
+        spdlog::error("Configuration validation failed. Exiting.");
+        return 1;
     }
     
     // Load config file
