@@ -175,7 +175,7 @@ jobs:
             
             # Run Simulation
             echo "Starting simulation..."
-            ./simulation/SLabSimu simulation/config/config.yaml "large_run.root"
+            ./simulation/SLabSimu
             
             # Run Analysis (generates manifest)
             echo "Simulation finished. Starting analysis..."
@@ -204,7 +204,8 @@ jobs:
                   "Output     = ${REPO_DIR}/logs/job_\$(ClusterId).out" \
                   "Error      = ${REPO_DIR}/logs/job_\$(ClusterId).err" \
                   "request_cpus = 8" \
-                  "should_transfer_files = NO" > job.sub
+                  "should_transfer_files = NO" \
+                  "queue" > job.sub
               
               JOB_ID=$(condor_submit job.sub | grep -oP 'submitted to cluster \K\d+')
               echo "--- Submitted job to HTCondor with ID: ${JOB_ID} ---"
