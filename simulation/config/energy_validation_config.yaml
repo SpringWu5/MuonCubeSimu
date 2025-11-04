@@ -1,0 +1,10 @@
+run_settings:
+  num_events: 1000
+  output_file: "results/energy_deposition_test.root"
+
+particle_gun:
+  enabled: true
+  particle: "mu-"
+  energy_MeV: 150.0
+  position_mm: [0, 0, -500]
+  direction: [0, 0, 1]
