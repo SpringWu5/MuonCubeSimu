@@ -54,14 +54,30 @@ G4bool SLabSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
     G4String particleName = track->GetDefinition()->GetParticleName();
     G4int trackID = track->GetTrackID();
 
-    // Record muon only
+    // Record energy deposition by particles
     Hits* hits = OutputManager::Instance()->GetSLabHits();
     if ((step->GetTrack()->GetDefinition() == G4MuonMinus::Definition() ||
         step->GetTrack()->GetDefinition() == G4MuonPlus::Definition())
         )
     {
         auto hitType = HitType::Muon;
-        Float_t energy = postStepPoint->GetKineticEnergy();
+        // Use total energy deposit in the step instead of post-step kinetic energy
+        Float_t energy = step->GetTotalEnergyDeposit();
+        G4ThreeVector momentum = postStepPoint->GetMomentum();
+        G4ThreeVector pos = postStepPoint->GetPosition();
+        Float_t hitTime = postStepPoint->GetGlobalTime() / ns;
+        hits->AddHit(
+            hitType, trackID, idSlab, 
+            energy/GeV, momentum.x()/GeV, momentum.y()/GeV, momentum.z()/GeV,
+            pos.x()/cm, pos.y()/cm, pos.z()/cm, hitTime
+        );
+    }
+    else
+    {
+        // Also record energy deposition for other particles
+        auto hitType = HitType::Others;
+        // Use total energy deposit in the step
+        Float_t energy = step->GetTotalEnergyDeposit();
         G4ThreeVector momentum = postStepPoint->GetMomentum();
         G4ThreeVector pos = postStepPoint->GetPosition();
         Float_t hitTime = postStepPoint->GetGlobalTime() / ns;

@@ -1,6 +1,6 @@
 Run:
   # number of events to simulate. -1 means all particles in the file
-  number_of_events: 10
+  number_of_events: 20
 
 Particles:
   particle_file_path: simulation/data/muons.json

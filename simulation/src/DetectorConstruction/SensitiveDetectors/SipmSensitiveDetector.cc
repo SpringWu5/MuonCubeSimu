@@ -81,7 +81,8 @@ G4bool SipmSensitiveDetector::ProcessHits(G4Step *step, G4TouchableHistory *)
 
     G4int trackID = step->GetTrack()->GetTrackID();
     G4StepPoint* postStepPoint = step->GetPostStepPoint();
-    Float_t energy = postStepPoint->GetKineticEnergy();
+    // Use total energy deposit in the step instead of post-step kinetic energy
+    Float_t energy = step->GetTotalEnergyDeposit();
     G4ThreeVector momentum = postStepPoint->GetMomentum();
     G4ThreeVector pos = postStepPoint->GetPosition();
     Float_t hitTime = postStepPoint->GetGlobalTime() / ns;

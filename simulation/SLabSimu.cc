@@ -18,13 +18,12 @@ using std::string;
 
 int main( [[maybe_unused]] int argc, [[maybe_unused]] char **argv)
 {
-    // 初始化日志系统
+    // 锟斤拷始锟斤拷锟斤拷志系统
     LogUtils::initialize_logging();
     
     bool gui = false;
     const char *config = "../SLabSimu/config/config.yaml";
     const char *output = "output.root";
-    json particle_list;
     int n_events = 1;
     if (argc==2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help")) {
         spdlog::info("Usage: SLabSimu config.yaml output.root ");
@@ -41,23 +40,11 @@ int main( [[maybe_unused]] int argc, [[maybe_unused]] char **argv)
     // Load config file
     auto config_root_node = YAML::LoadFile(config);
     
-    // Load particle data for both GUI and batch modes
-    string particle_json_path = config_root_node["Particles"]["particle_file_path"].as<string>();
-    std::ifstream particles_file;
-    particles_file.open(particle_json_path.c_str());
-    if (!particles_file.is_open()) {
-        spdlog::error("Failed to open particle json file: {:s}", particle_json_path);
-        throw;
-    } else {
-        spdlog::info("Particle json file opened: {:s}", particle_json_path);
-        particles_file >> particle_list;
-    }
+    // For high-energy muon beam simulation, we don't need to load particle json file
+    spdlog::info("Setting up high-energy muon beam simulation (10-40 GeV)");
     
     if (!gui) {
         n_events = config_root_node["Run"]["number_of_events"].as<int>();
-        if (n_events < 0 || n_events > int(particle_list.size())){
-            n_events = int(particle_list.size());
-        }
     }
 
     // Initialize output manager
@@ -78,8 +65,8 @@ int main( [[maybe_unused]] int argc, [[maybe_unused]] char **argv)
     G4VModularPhysicsList *physicsList = new PhysicsList();
     runManager->SetUserInitialization(physicsList);
 
-    // User action class
-    ActionInitialization *action = new ActionInitialization(particle_list);
+    // User action class - no particle list needed for new beam generation
+    ActionInitialization *action = new ActionInitialization();
     runManager->SetUserInitialization(action);
 
     runManager->Initialize();

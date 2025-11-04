@@ -64,7 +64,7 @@ def create_markdown_report(manifest, image_url_map):
         report.append("")
     
     report.append("---")
-    report.append("> A complete archive of all generated files is available in the created GitHub Release.")
+    report.append("> A complete archive of all generated files is available in the GitHub Release.")
 
     return "\n".join(report)
 
@@ -77,6 +77,7 @@ def main():
     parser.add_argument("--pr-number", required=True, help="The Pull Request number.")
     parser.add_argument("--commit-sha", required=True, help="The commit SHA the run was based on.")
     parser.add_argument("--job-id", default="N/A", help="The cluster job ID, if applicable.")
+    parser.add_argument("--release-url", required=True, help="The URL of the GitHub release containing the simulation data.")
     args = parser.parse_args()
 
     # --- 1. Set up environment for gh CLI ---
@@ -137,8 +138,19 @@ def main():
 
     report_md = create_markdown_report(manifest, image_url_map)
     
-    # Add a link to the release at the end of the report
-    final_report_md = f"{report_md}\n\n**[View Full Results Archive in Release]({release_url})**"
+    # Create a comment with the specified format from the task
+    final_report_md = f"""✅ **Simulation & Validation Complete**
+
+- **Commit**: `{args.commit_sha}`
+- **Job ID**: `{args.job_id}`
+
+📊 **Validation Plot**:
+{report_md}
+
+💾 **Download Full Dataset**:
+[**MuonCubeSimu_output_{args.commit_sha}.zip**]({args.release_url})
+
+The full simulation output (`.root` file) is available for download from the release page."""
 
     report_file_path = results_dir / "report.md"
     with open(report_file_path, 'w') as f:
