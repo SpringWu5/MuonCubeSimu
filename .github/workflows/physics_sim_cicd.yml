@@ -150,8 +150,8 @@ jobs:
                 "small_run.root"
 
               echo "--- Analyzing and Reporting Back (small) ---"
-              # Assuming a standard analysis script for small runs exists
-              python analysis/scripts/validate_energy_deposition.py \
+              # Use the new standard validation script for consistency
+              python analysis/scripts/standard_validation.py \
                 --input-file "small_run.root" \
                 --output-dir "results"
               
@@ -175,11 +175,11 @@ REPO_DIR_ABS=$(pwd)
 
 # Run Simulation
 echo "Starting simulation..."
-./simulation/SLabSimu
+./simulation/SLabSimu simulation/config/config.yaml large_run.root
 
-# Run Analysis (generates manifest)
-echo "Simulation finished. Starting analysis..."
-python analysis/scripts/validate_energy_deposition.py \
+# Run Basic Validation
+echo "Simulation finished. Starting validation..."
+python analysis/scripts/standard_validation.py \
   --input-file "large_run.root" \
   --output-dir "results"
 
@@ -196,7 +196,7 @@ gh release create "v${PR_SHA}" \
     "MuonCubeSimu_output_${PR_SHA}.zip#Simulation Output Data"
 
 # Run Post-Processing (reads manifest and reports back)
-echo "Analysis and release finished. Reporting results to GitHub..."
+echo "Validation and release finished. Reporting results to GitHub..."
 python analysis/scripts/post_process.py \
   --manifest "results/results_manifest.json" \
   --github-token "$1" \
