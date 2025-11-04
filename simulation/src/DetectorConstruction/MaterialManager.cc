@@ -55,7 +55,7 @@ void MaterialManager::LoadYAML()
     fSLabGeometry.slabOffsets = node["Layout"]["slab_offsets"].as<std::vector<double>>();
 
     // Extract config file directory to resolve relative paths
-    std::filesystem::path configPath(fConfigPath);
+    std::filesystem::path configPath(fConfigPath.c_str());
     std::filesystem::path configDir = configPath.parent_path();
 
     // Load sea optical properties
@@ -302,7 +302,7 @@ G4MaterialPropertiesTable* MaterialManager::SetOpticalPropertiesOfPS()
     string pathFile = rootNode["Property"]["scintillator"]["spectrum_file"].as<string>();
     
     // Extract config file directory to resolve relative paths
-    std::filesystem::path configPath(fConfigPath);
+    std::filesystem::path configPath(fConfigPath.c_str());
     std::filesystem::path configDir = configPath.parent_path();
     
     // Resolve path relative to config file directory

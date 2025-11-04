@@ -40,7 +40,7 @@ void SipmSensitiveDetector::LoadSipmPhotonDetectionEfficiency()
     
     // Resolve path relative to config file directory
     G4String configPath = MaterialManager::Instance()->getConfigPath();
-    std::filesystem::path configDirPath(configPath);
+    std::filesystem::path configDirPath(configPath.c_str());
     std::filesystem::path configDir = configDirPath.parent_path();
     std::filesystem::path fullPath = configDir / pde_path;
     
