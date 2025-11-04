@@ -78,5 +78,9 @@
   "hit_time": {
     "type": "array<float>",
     "description": "Array of time of each hit in ns"
+  },
+  "secondary_particle_pdg": {
+    "type": "array<int>",
+    "description": "PDG codes of all unique secondary particles created in the event"
   }
 }

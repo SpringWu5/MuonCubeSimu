@@ -2,6 +2,10 @@ Run:
   # number of events to simulate. -1 means all particles in the file
   number_of_events: 20
 
+output:
+  filename: "output.root"
+  max_events: 20  # This field is expected by the schema
+
 Particles:
   particle_file_path: simulation/data/muons.json
 

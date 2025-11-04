@@ -237,26 +237,40 @@ def plot_hit_map(data, output_dir):
 
 def plot_secondary_particle_census(data, output_dir):
     """
-    Placeholder for secondary particle census histogram.
-    Since we don't currently have a secondary particle PDG code field in our data contract,
-    this function will create a placeholder plot.
+    Create secondary particle census histogram from actual simulation data.
+    This function analyzes the secondary_particle_pdg field to count occurrences of different particle types.
     """
-    # For now, create a placeholder plot since we don't have this data
-    plt.figure(figsize=(10, 6))
+    if 'secondary_particle_pdg' not in data:
+        print("Warning: 'secondary_particle_pdg' not found in data")
+        return None
+        
+    # Flatten the list of lists to get all secondary particle PDG codes
+    all_pdg_codes = []
+    for event_pdgs in data['secondary_particle_pdg']:
+        if isinstance(event_pdgs, np.ndarray) or isinstance(event_pdgs, list):
+            all_pdg_codes.extend(event_pdgs)
+        else:
+            # Handle the case where it's a scalar value for some reason
+            all_pdg_codes.append(event_pdgs)
     
-    # Create dummy data for demonstration
-    pdg_codes = [11, -11, 13, -13, 22, 211, -211]  # Common particle PDG codes
-    counts = [50, 5, 30, 2, 100, 20, 15]  # Dummy counts
+    if not all_pdg_codes:
+        print("No secondary particle data to plot")
+        return None
     
-    plt.bar([str(code) for code in pdg_codes], counts)
-    plt.title('Secondary Particle Census (Placeholder)')
+    # Count occurrences of each PDG code
+    unique_pdgs, counts = np.unique(all_pdg_codes, return_counts=True)
+    
+    # Plot the census
+    plt.figure(figsize=(12, 6))
+    plt.bar([str(code) for code in unique_pdgs], counts)
+    plt.title('Secondary Particle Census')
     plt.xlabel('Particle PDG Code')
-    plt.ylabel('Count')
+    plt.ylabel('Total Count Across All Events')
     plt.xticks(rotation=45)
     plt.grid(True, alpha=0.3)
     
     output_path = os.path.join(output_dir, 'secondary_particle_census.png')
-    plt.savefig(output_path)
+    plt.savefig(output_path, bbox_inches='tight')
     plt.close()
     
     return output_path
