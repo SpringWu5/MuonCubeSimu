@@ -5,6 +5,7 @@
 #include "globals.hh"
 #include <map>
 #include <string>
+#include <set>
 
 class EventAction;
 
