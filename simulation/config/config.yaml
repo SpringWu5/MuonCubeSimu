@@ -1,42 +1,49 @@
-Run:
-  # number of events to simulate. -1 means all particles in the file
-  number_of_events: 20
+# Configuration for the "Pencil Beam Sanity Check"
+# This file is compliant with config_schema.json
+
+particle_gun:
+  particle_type: "mu-"
+  energy_distribution:
+    type: "fixed"
+    params:
+      mean: 5000.0 # 5 GeV - Using mean for fixed distribution per schema
+  direction_distribution:
+    type: "fixed"
+    params:
+      dir_x: 0.0
+      dir_y: 0.0
+      dir_z: 1.0 # Perpendicular to the detector face
+  position_distribution:
+    type: "uniform"
+    params:
+      x_min: -10.0 # mm
+      x_max: 10.0  # mm
+      y_min: -10.0 # mm
+      y_max: 10.0  # mm
+      z_pos: -150.0 # mm, start just in front of the detector assembly
+
+detector:
+  geometry:
+    slab_dimensions:
+      width: 200.0   # 20.0 cm -> 200.0 mm
+      height: 200.0  # 20.0 cm -> 200.0 mm
+      thickness: 20.0 # 2.0 cm -> 20.0 mm
+    # Positions derived from old config's slab_offsets: [-9.63, 4.2, 4.2, 4.2] cm
+    # Assuming offsets are relative and start from a central point.
+    slab_positions:
+      - { x: 0, y: 0, z: -96.3 } # mm
+      - { x: 0, y: 0, z: -54.3 } # mm
+      - { x: 0, y: 0, z: -12.3 } # mm
+      - { x: 0, y: 0, z: 29.7 }  # mm
+
+physics:
+  physics_list: "FTFP_BERT"
 
 output:
-  filename: "output.root"
-  max_events: 20  # This field is expected by the schema
+  filename: "pencil_beam_sanity_check.root"
+  max_events: 100
 
-Particles:
-  particle_file_path: simulation/data/muons.json
-
-Geometry:
-  SLab:
-    Scintillator:
-      x_length: 20.0 #cm
-      y_length: 20.0 #cm
-      z_length: 2.0 #cm
-    
-    ESR:
-      thickness: 0.1 #cm
-    
-    Tape:
-      thickness: 0.1 #cm
-
-    SiPM:
-      x_length: 1.0 #cm
-      y_length: 1.0 #cm
-      z_length: 0.1 #cm
-    
-    Battery:
-      x_length: 19.4 # cm
-      y_length: 27.0  # cm
-      z_length: 13.3  # cm
-
-    Layout:
-      number_of_slabs: 4
-      slab_offsets: [-9.63, 4.2, 4.2, 4.2]  # cm
-  
-Property:
+property:
   scintillator:
     spectrum_file: simulation/config/EJ200ScintSpectrum.txt
 
@@ -46,5 +53,5 @@ Property:
   sea_optical_property:
     path_file: simulation/config/optical_properties.yaml
   
-  Atmosphere:
+  atmosphere:
     density:  0.001205 #g / cm3
