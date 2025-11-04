@@ -104,6 +104,28 @@ def main():
     zip_command = ["zip", zip_file_path] + artifacts_to_zip
     run_command(zip_command, check=True, cwd=results_dir)
 
+    # --- 4. Create a unique tag and create the GitHub Release ---
+    tag_name = f"exp/{args.pr_number}/{args.commit_sha[:7]}"
+    release_title = f"Experimental Run for PR #{args.pr_number} ({args.commit_sha[:7]})"
+    release_notes = f"Full data archive for simulation run based on commit {args.commit_sha}."
+
+    # Identify key artifacts to upload separately for direct linking
+    key_artifacts = [art for art in manifest.get("artifacts", []) if art.get("is_key_result")]
+    asset_paths = [str(results_dir / zip_file_path)] + [str(results_dir / art["path"]) for art in key_artifacts]
+
+    print(f"Creating release with tag: {tag_name}")
+    # Use --generate-notes to add a list of commits since last release
+    release_command = [
+        "gh", "release", "create", tag_name,
+        "--repo", args.repo,
+        "--title", release_title,
+        "--notes", release_notes,
+        "--target", args.commit_sha,
+        "--generate-notes"
+    ] + asset_paths
+    release_url = run_command(release_command)
+    print(f"Successfully created release: {release_url}")
+
     # --- 5. Generate and post the PR comment ---
     # Build a map of local artifact paths to their public release URLs
     image_url_map = {}
@@ -111,8 +133,7 @@ def main():
     for art in key_artifacts:
         file_name = Path(art["path"]).name
         # Construct the public URL for the asset
-        # The release was created in run_and_report.sh with tag "v${PR_SHA}"
-        image_url = f"https://github.com/{args.repo}/releases/download/v{args.commit_sha}/{file_name}"
+        image_url = f"https://github.com/{args.repo}/releases/download/{tag_name}/{file_name}"
         image_url_map[art["path"]] = image_url
 
     report_md = create_markdown_report(manifest, image_url_map)
