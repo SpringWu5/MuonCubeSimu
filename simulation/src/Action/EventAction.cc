@@ -60,10 +60,28 @@ void EventAction::BeginOfEventAction(const G4Event *event) {
                 G4String particleName = primary->GetG4code()->GetParticleName();
                 G4double energy = primary->GetKineticEnergy() / CLHEP::MeV;
                 
+                // Calculate incident angles
+                G4double px = primary->GetPx();
+                G4double py = primary->GetPy();
+                G4double pz = primary->GetPz();
+                
+                // Calculate theta (polar angle) and phi (azimuthal angle)
+                G4double momentum_magnitude = sqrt(px*px + py*py + pz*pz);
+                G4double theta = 0.0;
+                if (momentum_magnitude > 0) {
+                    theta = acos(pz / momentum_magnitude);  // Angle relative to z-axis
+                }
+                G4double phi = atan2(py, px);  // Azimuthal angle in x-y plane
+                
+                // Set angles in OutputManager
+                OutputManager::Instance()->SetInitialTheta(theta);
+                OutputManager::Instance()->SetInitialPhi(phi);
+                
                 // Log minimal primary particle info
                 std::stringstream primaryInfo;
                 primaryInfo << "Primary particle: " << particleName 
-                           << " with energy " << energy << " MeV";
+                           << " with energy " << energy << " MeV"
+                           << ", theta: " << theta << " rad, phi: " << phi << " rad";
                 LogUtils::log_info(primaryInfo.str());
             }
         }

@@ -1,0 +1,23 @@
+# Test configuration for muon angle recording validation
+# This configures the particle gun to emit muons with specific angles
+
+particle_gun:
+  enabled: true
+  particle: "mu-"
+  energy_MeV: 1000.0  # 1 GeV muon
+  position_mm: [0.0, 0.0, 100.0]  # Position at (0, 0, 100) mm
+  direction: [0.0, 0.0, -1.0]     # Traveling in -z direction (normal to slabs)
+
+detector:
+  material: "G4_POLYSTYRENE" # Scintillator material
+  slab_thickness_mm: 10.0
+  slab_size_xy_cm: 50.0
+  slab_separation_cm: 10.0
+  number_of_slabs: 4
+
+physics:
+  list: "FTFP_BERT"
+
+output:
+  filename: "test_muon_angles_output.root"
+  compression_level: 2

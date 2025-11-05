@@ -82,5 +82,13 @@
   "secondary_particle_pdg": {
     "type": "array<int>",
     "description": "PDG codes of all unique secondary particles created in the event"
+  },
+  "initial_theta": {
+    "type": "float",
+    "description": "Polar angle of the initial muon momentum relative to the z-axis in radians"
+  },
+  "initial_phi": {
+    "type": "float",
+    "description": "Azimuthal angle of the initial muon momentum in the x-y plane in radians"
   }
 }

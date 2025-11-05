@@ -235,6 +235,56 @@ def plot_hit_map(data, output_dir):
     return output_path
 
 
+def plot_initial_angles(data, output_dir):
+    """
+    Plot distributions of initial theta and phi angles.
+    """
+    if 'initial_theta' not in data or 'initial_phi' not in data:
+        print("Warning: 'initial_theta' or 'initial_phi' not found in data")
+        return [None, None, None]
+    
+    # Plot 1: Distribution of initial theta angles
+    plt.figure(figsize=(10, 6))
+    plt.hist(data['initial_theta'], bins=100, alpha=0.7, color='blue', edgecolor='black')
+    plt.xlabel('Theta (radians)')
+    plt.ylabel('Frequency')
+    plt.title('Distribution of Initial Muon Polar Angles (Theta)')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    theta_hist_path = os.path.join(output_dir, "initial_theta_distribution.png")
+    plt.savefig(theta_hist_path)
+    plt.close()
+    print(f"Saved theta distribution plot to {theta_hist_path}")
+
+    # Plot 2: Distribution of initial phi angles
+    plt.figure(figsize=(10, 6))
+    plt.hist(data['initial_phi'], bins=100, alpha=0.7, color='green', edgecolor='black')
+    plt.xlabel('Phi (radians)')
+    plt.ylabel('Frequency')
+    plt.title('Distribution of Initial Muon Azimuthal Angles (Phi)')
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    phi_hist_path = os.path.join(output_dir, "initial_phi_distribution.png")
+    plt.savefig(phi_hist_path)
+    plt.close()
+    print(f"Saved phi distribution plot to {phi_hist_path}")
+
+    # Plot 3: 2D histogram of theta vs phi
+    plt.figure(figsize=(10, 8))
+    plt.hist2d(data['initial_theta'], data['initial_phi'], bins=100, cmap='Blues')
+    plt.colorbar(label='Frequency')
+    plt.xlabel('Theta (radians)')
+    plt.ylabel('Phi (radians)')
+    plt.title('2D Distribution of Initial Muon Angles (Theta vs Phi)')
+    plt.tight_layout()
+    angle_2d_path = os.path.join(output_dir, "2d_angle_distribution.png")
+    plt.savefig(angle_2d_path)
+    plt.close()
+    print(f"Saved 2D angle distribution plot to {angle_2d_path}")
+
+    return [theta_hist_path, phi_hist_path, angle_2d_path]
+
+
 def plot_secondary_particle_census(data, output_dir):
     """
     Create secondary particle census histogram from actual simulation data.
@@ -321,6 +371,11 @@ def main():
     plots.append(plot_total_energy_deposition(data, args.output_dir))
     plots.append(plot_slab_energy_deposition(data, args.output_dir))
     plots.append(plot_hit_map(data, args.output_dir))
+    
+    # Generate angle plots if available
+    angle_plots = plot_initial_angles(data, args.output_dir)
+    plots.extend(angle_plots)
+    
     plots.append(plot_secondary_particle_census(data, args.output_dir))
     
     # Create results manifest
