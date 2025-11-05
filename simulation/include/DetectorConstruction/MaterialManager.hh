@@ -75,6 +75,8 @@ struct SipmProperty
 class MaterialManager : public Singleton<MaterialManager> {
 public:
     YAML::Node getRootNode() { return rootNode; }
+    
+    G4String getConfigPath() { return fConfigPath; }
 
     bool BuildEverything(const G4String &fileYAML);
 
@@ -126,6 +128,7 @@ private:
     std::map<std::string, G4Material *> fMapMaterial;
 
     YAML::Node rootNode;
+    G4String fConfigPath;  // Store the config file path to resolve relative paths
     SLabGeometry fSLabGeometry;
     OpticalProperty fSeaOpticalProperty;
     SipmProperty fSipmProperty;

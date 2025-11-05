@@ -7,6 +7,7 @@
 #include "yaml-cpp/yaml.h"
 #include "nlohmann/json.hpp"
 #include "Util/Logger.hh"
+#include "Util/ConfigManager.hh"
 #include <fstream>
 #include <streambuf>
 
@@ -18,100 +19,14 @@
 using json = nlohmann::json;
 using std::string;
 
-// Function to validate config against schema (robust implementation using manual validation)
-bool validate_config_against_schema(const std::string& config_path, const std::string& schema_path) {
-    try {
-        // Load the YAML configuration
-        YAML::Node yaml_config = YAML::LoadFile(config_path);
-        
-        // Convert YAML to JSON for validation
-        std::string json_str = nlohmann::json(yaml_config).dump();
-        nlohmann::json config_json = nlohmann::json::parse(json_str);
-        
-        // Load the schema
-        std::ifstream schema_file(schema_path);
-        if (!schema_file.is_open()) {
-            spdlog::error("Could not open schema file: {}", schema_path);
-            return false;
-        }
-        
-        std::string schema_str((std::istreambuf_iterator<char>(schema_file)),
-                              std::istreambuf_iterator<char>());
-        schema_file.close();
-        
-        nlohmann::json schema_json = nlohmann::json::parse(schema_str);
-        
-        // Perform custom validation based on the schema structure
-        // Check required top-level properties exist
-        if (schema_json.contains("required") && schema_json["required"].is_array()) {
-            for (const auto& required_key : schema_json["required"]) {
-                std::string key = required_key.get<std::string>();
-                if (config_json.find(key) == config_json.end()) {
-                    spdlog::error("Configuration missing required key: {}", key);
-                    return false;
-                }
-            }
-        }
-        
-        // Validate required properties in particle_gun section
-        if (config_json.contains("particle_gun") && schema_json["properties"]["particle_gun"].contains("required")) {
-            for (const auto& required_key : schema_json["properties"]["particle_gun"]["required"]) {
-                std::string key = required_key.get<std::string>();
-                if (config_json["particle_gun"].find(key) == config_json["particle_gun"].end()) {
-                    spdlog::error("Configuration missing required key in particle_gun: {}", key);
-                    return false;
-                }
-            }
-        }
-        
-        // Validate required properties in detector section
-        if (config_json.contains("detector") && schema_json["properties"]["detector"].contains("required")) {
-            for (const auto& required_key : schema_json["properties"]["detector"]["required"]) {
-                std::string key = required_key.get<std::string>();
-                if (config_json["detector"].find(key) == config_json["detector"].end()) {
-                    spdlog::error("Configuration missing required key in detector: {}", key);
-                    return false;
-                }
-            }
-        }
-        
-        // Validate required properties in physics section
-        if (config_json.contains("physics") && schema_json["properties"]["physics"].contains("required")) {
-            for (const auto& required_key : schema_json["properties"]["physics"]["required"]) {
-                std::string key = required_key.get<std::string>();
-                if (config_json["physics"].find(key) == config_json["physics"].end()) {
-                    spdlog::error("Configuration missing required key in physics: {}", key);
-                    return false;
-                }
-            }
-        }
-        
-        // Validate required properties in output section
-        if (config_json.contains("output") && schema_json["properties"]["output"].contains("required")) {
-            for (const auto& required_key : schema_json["properties"]["output"]["required"]) {
-                std::string key = required_key.get<std::string>();
-                if (config_json["output"].find(key) == config_json["output"].end()) {
-                    spdlog::error("Configuration missing required key in output: {}", key);
-                    return false;
-                }
-            }
-        }
-        
-        spdlog::info("Configuration validation passed");
-        return true;
-    } catch (const std::exception& e) {
-        spdlog::error("Configuration validation failed: {}", e.what());
-        return false;
-    }
-}
-
 int main(int argc, char **argv)
 {
     // Initialize logging system
     LogUtils::initialize_logging();
     
     // Hardcode config file path - zero-argument execution
-    const char *config = "../SLabSimu/config/config.yaml";
+    const char *config = "../config/config.yaml";
+    const char *schema = "../config/config_schema.json";
     const char *output = "output.root";  // Default, may be overridden by config
     int n_events = 1;
     
@@ -132,27 +47,31 @@ int main(int argc, char **argv)
         spdlog::info("Running in batch mode with hardcoded config");
     }
 
-    // Validate config against schema
-    if (!validate_config_against_schema(config, "../SLabSimu/config/config_schema.json")) {
+    // Load and validate config using ConfigManager
+    if (!ConfigManager::Instance()->LoadConfig(config, schema)) {
         spdlog::error("Configuration validation failed. Exiting.");
         return 1;
     }
     
-    // Load config file
-    auto config_root_node = YAML::LoadFile(config);
-    
     // For high-energy muon beam simulation, we don't need to load particle json file
     spdlog::info("Setting up high-energy muon beam simulation (10-40 GeV)");
     
-    // Set output filename from config
-    if (config_root_node["output"] && config_root_node["output"]["filename"]) {
-        output = config_root_node["output"]["filename"].as<std::string>().c_str();
+    // Set output filename from config using ConfigManager
+    auto output_node = ConfigManager::Instance()->GetNode("output.filename");
+    if (output_node) {
+        output = output_node.as<std::string>().c_str();
     } else {
         spdlog::warn("Output filename not specified in config, using default: output.root");
     }
     
     if (!gui) {
-        n_events = config_root_node["Run"]["number_of_events"].as<int>();
+        auto events_node = ConfigManager::Instance()->GetNode("Run.number_of_events");
+        if (events_node) {
+            n_events = events_node.as<int>();
+        } else {
+            spdlog::error("Number of events not specified in config. Exiting.");
+            return 1;
+        }
     }
 
     // Initialize output manager
@@ -191,7 +110,7 @@ int main(int argc, char **argv)
         G4UIExecutive* ui = new G4UIExecutive(argc, argv);
 
         // Execute the visualization macro
-        UImanager->ApplyCommand("/control/execute ../SLabSimu/config/vis.mac"); 
+        UImanager->ApplyCommand("/control/execute ../config/vis.mac"); 
         ui->SessionStart();
         OutputManager::Instance()->Save();
         delete ui;
