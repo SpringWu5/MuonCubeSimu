@@ -231,15 +231,67 @@
         "filename": {
           "type": "string",
           "description": "Name of the output ROOT file"
-        },
-        "max_events": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Maximum number of events to simulate"
         }
       },
-      "required": ["filename", "max_events"]
+      "required": ["filename"]
+    },
+    "Run": {
+      "type": "object",
+      "properties": {
+        "number_of_events": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of events to simulate"
+        }
+      },
+      "required": ["number_of_events"]
+    },
+    "property": {
+      "type": "object",
+      "properties": {
+        "scintillator": {
+          "type": "object",
+          "properties": {
+            "spectrum_file": {
+              "type": "string",
+              "description": "Path to the scintillator spectrum file"
+            }
+          },
+          "required": ["spectrum_file"]
+        },
+        "sipm": {
+          "type": "object",
+          "properties": {
+            "pde_file": {
+              "type": "string",
+              "description": "Path to the SiPM photon detection efficiency file"
+            }
+          },
+          "required": ["pde_file"]
+        },
+        "sea_optical_property": {
+          "type": "object",
+          "properties": {
+            "path_file": {
+              "type": "string",
+              "description": "Path to the sea optical properties file"
+            }
+          },
+          "required": ["path_file"]
+        },
+        "atmosphere": {
+          "type": "object",
+          "properties": {
+            "density": {
+              "type": "number",
+              "description": "Atmosphere density in g/cm3"
+            }
+          },
+          "required": ["density"]
+        }
+      },
+      "required": ["scintillator", "sipm", "sea_optical_property", "atmosphere"]
     }
   },
-  "required": ["particle_gun", "detector", "physics", "output"]
+  "required": ["particle_gun", "detector", "physics", "output", "Run", "property"]
 }

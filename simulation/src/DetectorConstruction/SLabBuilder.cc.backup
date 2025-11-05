@@ -141,24 +141,47 @@ G4VPhysicalVolume*  SLabBuilder::Construct()
     //                   0,
     //                   true);
     const auto &geoSlab = MaterialManager::Instance()->GetSLabGeometry();
-    // Place slabs using positions from configuration
-    // Get positions from the new config format directly
-    YAML::Node slabPositions = ConfigManager::Instance()->GetNode("detector.geometry.slab_positions");
-    for (int i = 0; i < geoSlab.numberOfSlabs && i < static_cast<int>(slabPositions.size()); i++)
+    const double total_thickness = geoSlab.Scintzlength + geoSlab.ESRthickness + geoSlab.Tapethickness;
+    
+    // Store all scintillator physical volumes for later position analysis
+    std::vector<G4VPhysicalVolume*> scintillatorPVs;
+    
+    // ʹ�������ļ��еĲ���
+    for (int i = 0; i < geoSlab.numberOfSlabs; i++)
     {
-        double x_pos = slabPositions[i]["x"].as<double>();
-        double y_pos = slabPositions[i]["y"].as<double>();
-        double z_pos = slabPositions[i]["z"].as<double>();
-        
         new G4PVPlacement(0,
-                        G4ThreeVector(x_pos * mm, y_pos * mm, z_pos * mm),  // Use actual x, y, z positions from config
+                        G4ThreeVector(0, 0, geoSlab.slabOffsets[i] + total_thickness * (i - 1)),
                         fLogicScint,
                         "Scint",
                         logicWorld,
                         false,
                         i,
                         false);
-    }
+                        // fLogicTape,
+                        // "Tape",
+                        // logicWorld,
+                        // false,
+                        // i,
+                        // false);
+
+        // new G4PVPlacement(0,
+        //               G4ThreeVector(0, 0, 0),
+        //               fLogicESR,
+        //               "ESR",
+        //               fLogicTape,
+        //               false,
+        //               i,
+        //               false);
+
+        // new G4PVPlacement(0,
+        //               G4ThreeVector(0, 0, 0),
+        //               fLogicScint,
+        //               "Scint",
+        //               fLogicESR,
+        //               false,
+        //               i,
+        //               false);
+        }
 
     SipmBuilder sipm = SipmBuilder();
     sipm.Build();
@@ -175,11 +198,7 @@ G4VPhysicalVolume*  SLabBuilder::Construct()
         
         // �����µ�λ�ã���SiPM������ȷ��λ����
         for (int j = 0; j < geoSlab.numberOfSlabs; j++) {
-            YAML::Node slabPositions = ConfigManager::Instance()->GetNode("detector.geometry.slab_positions");
-            double x_pos = slabPositions[j]["x"].as<double>();
-            double y_pos = slabPositions[j]["y"].as<double>();
-            double z_pos = slabPositions[j]["z"].as<double>();
-            G4ThreeVector slabPosition(x_pos * mm, y_pos * mm, z_pos * mm);
+            G4ThreeVector slabPosition(0, 0, geoSlab.slabOffsets[j] + total_thickness * (j - 1));
             G4ThreeVector finalPosition = slabPosition + sipmPosition;
             
             // ��ת���󱣳ֲ���

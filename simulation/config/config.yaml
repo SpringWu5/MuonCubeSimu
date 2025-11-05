@@ -20,7 +20,7 @@ particle_gun:
       x_max: 10.0  # mm
       y_min: -10.0 # mm
       y_max: 10.0  # mm
-      z_pos: -150.0 # mm, start just in front of the detector assembly
+      pos_z: -150.0 # mm, start just in front of the detector assembly
 
 detector:
   geometry:
@@ -41,7 +41,9 @@ physics:
 
 output:
   filename: "pencil_beam_sanity_check.root"
-  max_events: 100
+
+Run:
+  number_of_events: 100
 
 property:
   scintillator:

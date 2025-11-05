@@ -3,6 +3,7 @@
 #include "G4SystemOfUnits.hh"
 #include "G4MaterialTable.hh"
 #include "G4NistManager.hh"
+#include "Util/ConfigManager.hh"
 #include <sstream>
 #include <string>
 #include <filesystem>
@@ -14,7 +15,11 @@ bool MaterialManager::BuildEverything(const G4String &fileYAML)
 {
     logger = create_logger("MaterialManager");
     fConfigPath = fileYAML;  // Store the config path to resolve relative paths
-    rootNode = YAML::LoadFile(fileYAML);
+    
+    // Configuration should already be loaded via ConfigManager in main
+    // The configuration is already validated through ConfigManager
+    // We'll access the necessary parameters via ConfigManager
+    
     try {
         LoadYAML();
     }
@@ -37,34 +42,43 @@ bool MaterialManager::BuildEverything(const G4String &fileYAML)
 
 void MaterialManager::LoadYAML()
 {
-    // Load SLab geometry
-    auto node = rootNode["Geometry"]["SLab"];
-    fSLabGeometry.Scintxlength = node["Scintillator"]["x_length"].as<double>() * cm;
-    fSLabGeometry.Scintylength = node["Scintillator"]["y_length"].as<double>() * cm;
-    fSLabGeometry.Scintzlength = node["Scintillator"]["z_length"].as<double>() * cm;
-    fSLabGeometry.ESRthickness = node["ESR"]["thickness"].as<double>() * cm;
-    fSLabGeometry.Tapethickness = node["Tape"]["thickness"].as<double>() * cm;
-    fSLabGeometry.SiPMxlength = node["SiPM"]["x_length"].as<double>() * cm;
-    fSLabGeometry.SiPMylength = node["SiPM"]["y_length"].as<double>() * cm;
-    fSLabGeometry.SiPMzlength = node["SiPM"]["z_length"].as<double>() * cm;
-    fSLabGeometry.Batteryxlength = node["Battery"]["x_length"].as<double>() * cm;
-    fSLabGeometry.Batteryylength = node["Battery"]["y_length"].as<double>() * cm;
-    fSLabGeometry.Batteryzlength = node["Battery"]["z_length"].as<double>() * cm;
+    // Load SLab geometry from ConfigManager
+    fSLabGeometry.Scintxlength = ConfigManager::Instance()->GetNode("detector.geometry.slab_dimensions.width").as<double>() * mm;
+    fSLabGeometry.Scintylength = ConfigManager::Instance()->GetNode("detector.geometry.slab_dimensions.height").as<double>() * mm;
+    fSLabGeometry.Scintzlength = ConfigManager::Instance()->GetNode("detector.geometry.slab_dimensions.thickness").as<double>() * mm;
+    
+    // We need to adapt to the new config format which doesn't have ESR/Tape/Battery dimensions separately
+    // Using reasonable defaults based on scintillator dimensions
+    fSLabGeometry.ESRthickness = 1.0 * mm; // Default ESR thickness
+    fSLabGeometry.Tapethickness = 1.0 * mm; // Default tape thickness
+    fSLabGeometry.SiPMxlength = 3.0 * mm; // Default SiPM size
+    fSLabGeometry.SiPMylength = 3.0 * mm; 
+    fSLabGeometry.SiPMzlength = 0.5 * mm; 
+    fSLabGeometry.Batteryxlength = 10.0 * mm; // Default battery size
+    fSLabGeometry.Batteryylength = 10.0 * mm; 
+    fSLabGeometry.Batteryzlength = 5.0 * mm; 
 
-    fSLabGeometry.numberOfSlabs = node["Layout"]["number_of_slabs"].as<int>();
-    fSLabGeometry.slabOffsets = node["Layout"]["slab_offsets"].as<std::vector<double>>();
+    fSLabGeometry.numberOfSlabs = ConfigManager::Instance()->GetNode("detector.geometry.slab_positions").size();
+    
+    // Get slab positions from the new config format
+    auto slabPositionsNode = ConfigManager::Instance()->GetNode("detector.geometry.slab_positions");
+    for (size_t i = 0; i < slabPositionsNode.size(); ++i) {
+        // Get z position of each slab from the new structure
+        double z_pos = slabPositionsNode[i]["z"].as<double>();
+        fSLabGeometry.slabOffsets.push_back(z_pos * mm);
+    }
 
     // Extract config file directory to resolve relative paths
     std::filesystem::path configPath(fConfigPath.c_str());
     std::filesystem::path configDir = configPath.parent_path();
 
-    // Load sea optical properties
-    string pathFile = rootNode["Property"]["sea_optical_property"]["path_file"].as<string>();
-    logger->debug("Reading config YAML file: optical properties");
+    // Load sea optical properties from the new config structure
+    string pathFile = ConfigManager::Instance()->GetNode("property.sea_optical_property.path_file").as<string>();
+    logger->debug("Reading optical properties file: {}", pathFile);
     
     // Resolve path relative to config file directory
     std::filesystem::path fullPath = configDir / pathFile;
-    node = YAML::LoadFile(fullPath.string());
+    YAML::Node node = YAML::LoadFile(fullPath.string());
     fSeaOpticalProperty.energy = node["energy"].as<vector<double>>();
     fSeaOpticalProperty.num = fSeaOpticalProperty.energy.size();
     fSeaOpticalProperty.refracIdxPhase = node["refractive_index_phase"].as<vector<double>>();
@@ -78,9 +92,7 @@ void MaterialManager::LoadYAML()
     for (auto &len : fSeaOpticalProperty.absLen) { len *=  m; }
     for (auto &len : fSeaOpticalProperty.scaLenRay) { len *= m; }
     for (auto &len : fSeaOpticalProperty.scaLenMie) { len *= m; }
-    for (auto& offset : fSLabGeometry.slabOffsets) {
-        offset *= cm;
-    }
+    // Note: slabOffsets are already in mm from the config, so no need to multiply by cm again
 }
 
 void MaterialManager::BuildElement()
@@ -299,7 +311,7 @@ G4MaterialPropertiesTable* MaterialManager::SetOpticalPropertiesOfPS()
 	G4double pEnergy;
 	G4double pWavelength;
 	G4double pSEff;
-    string pathFile = rootNode["Property"]["scintillator"]["spectrum_file"].as<string>();
+    string pathFile = ConfigManager::Instance()->GetNode("property.scintillator.spectrum_file").as<string>();
     
     // Extract config file directory to resolve relative paths
     std::filesystem::path configPath(fConfigPath.c_str());
