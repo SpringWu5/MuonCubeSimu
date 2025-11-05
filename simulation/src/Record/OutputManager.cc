@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sstream>
 
-OutputManager::OutputManager(): fOutputFile(0), fOutputTree(0), fTotalEnergyDeposition(0.0){ 
+OutputManager::OutputManager(): fOutputFile(0), fOutputTree(0), fTotalEnergyDeposition(0.0), fInitialTheta(0.0), fInitialPhi(0.0){ 
     fMuons = new Muons();
     fSLabHits = new Hits();
     fHits = new Hits();
@@ -70,6 +70,10 @@ void OutputManager::Book(G4String outfile)
             fOutputTree->Branch("eventID", &fEventID, "eventID/I");
         } else if (branch_name == "total_energy_deposition") {
             fOutputTree->Branch("totalEnergyDeposition", &fTotalEnergyDeposition, "totalEnergyDeposition/F");
+        } else if (branch_name == "initial_theta") {
+            fOutputTree->Branch("initialTheta", &fInitialTheta, "initialTheta/F");
+        } else if (branch_name == "initial_phi") {
+            fOutputTree->Branch("initialPhi", &fInitialPhi, "initialPhi/F");
         } else if (branch_name == "secondary_particle_pdg") {
             // Special handling for secondary particles - this will be a vector branch
             fOutputTree->Branch("secondaryParticlePDG", &fSecondaryParticlePDG);

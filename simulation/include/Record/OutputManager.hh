@@ -35,6 +35,8 @@ public:
         fMuons->Reset();
         fSLabHits->Reset();
         fHits->Reset();
+        fInitialTheta = 0.0;  // Reset angle values
+        fInitialPhi = 0.0;    // Reset angle values
         ClearSecondaryParticlePDG();  // Clear secondary particles for next event
     }
 
@@ -48,6 +50,8 @@ public:
 
     void SetEventID(Int_t eID) { fEventID = eID; }
     void SetTotalEnergyDeposition(Float_t energy) { fTotalEnergyDeposition = energy; }
+    void SetInitialTheta(Float_t theta) { fInitialTheta = theta; }
+    void SetInitialPhi(Float_t phi) { fInitialPhi = phi; }
     void SetSecondaryParticlePDG(std::vector<Int_t> pdg_codes) { fSecondaryParticlePDG = pdg_codes; }
     std::vector<Int_t> GetSecondaryParticlePDG() { return fSecondaryParticlePDG; }
     
@@ -77,6 +81,8 @@ private:
 
     Int_t    fEventID;
     Float_t  fTotalEnergyDeposition;
+    Float_t  fInitialTheta;
+    Float_t  fInitialPhi;
     Muons*   fMuons;
     Hits*    fSLabHits;
     Hits*    fHits;
